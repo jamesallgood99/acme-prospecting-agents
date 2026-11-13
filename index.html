@@ -134,7 +134,7 @@ details summary { cursor: pointer; }
 </div>
 <div class="top">
   <h1>Acme Corp Prospecting Agents</h1>
-  <p class="sub">Turns public buying signals into a sourced dossier, a sample in the prospect's genre and a first email from Myko, Acme Corp's AI agent. Every sentence maps to a source or an approved proof point. Nothing sends: this prototype shows the work a person approves.</p>
+  <p class="sub">Turns public buying signals into a sourced dossier, a sample in the prospect's genre and a first email from Revel, Acme Corp's AI agent. Every sentence maps to a source or an approved proof point. Nothing sends: this prototype shows the work a person approves.</p>
   <div class="flow" aria-label="Pipeline">
     <span class="step">1 Research</span><span class="arrow">→</span>
     <span class="step">3 Asset (Mode A)</span><span class="arrow">+</span>
@@ -280,9 +280,9 @@ const FAQ = [
   "Is Acme Corp certified for security? SOC 2 and ISO 27001."
 ];
 const SENDER = {
-  name: "Myko",
-  address: "myko@[warmed outreach domain]",
-  signature: "Myko, Acme Corp's AI agent. A person on the Acme Corp team reads every reply.",
+  name: "Revel",
+  address: "revel@[warmed outreach domain]",
+  signature: "Revel, Acme Corp's AI agent. A person on the Acme Corp team reads every reply.",
   postal: "Acme Corp, [physical mailing address]",
   optout: "Reply \"stop\" and I won't email you again."
 };
@@ -403,7 +403,7 @@ Reply with only JSON:
 
   writing: (a, d, asset, feedback) => {
     const p = PERSONAS.find(x => x.id === d.target_persona.id) || PERSONAS[0];
-    return `You are Agent 2, the writing agent. Write touch 1 of a cold email from Myko, Acme Corp's AI agent, to one person. Myko never claims to be human.
+    return `You are Agent 2, the writing agent. Write touch 1 of a cold email from Revel, Acme Corp's AI agent, to one person. Revel never claims to be human.
 
 RECIPIENT: ${d.contact.name || "there"}, ${d.contact.title || ""} at ${a.company}
 PERSONA: ${p.name}. Lead angle: ${p.angle}. Pride toehold: "${p.pride}". Trust line: ${p.trust}. First CTA: ${p.cta}.
@@ -423,7 +423,7 @@ Persona lines above may be cited as "PERSONA".
 ACME CORP INTEGRATIONS FOR THE TOOLS THEY NAME (cite by id)
 ${(() => { const m = matchIntegrations(d); return m.length ? m.map(i => `${i.id}: ${i.line} (${i.name}, ${i.kind})`).join("\n") + (m.some(i => i.kind === "engine") ? "\nThey hire for or build in a game engine. One sentence MUST tie Acme Corp to that engine by name through its plugin, cited to its id, as part of the cure: the asset lands in the engine they already use, no import step. Name their DCC tool too if it fits in the same sentence." : "") : "None of their named tools has a Acme Corp integration. Do not claim one."; })()}
 
-PREFILLED PROMPT: ${asset && asset.concept ? `Myko has already written a Acme Corp prompt for "${asset.concept}" in their style. The placeholder {PROMPT_LINK} opens Acme Corp with that prompt loaded.` : "None this time. Use the sketch-to-model invite as the CTA instead and do not use {PROMPT_LINK}."}
+PREFILLED PROMPT: ${asset && asset.concept ? `Revel has already written a Acme Corp prompt for "${asset.concept}" in their style. The placeholder {PROMPT_LINK} opens Acme Corp with that prompt loaded.` : "None this time. Use the sketch-to-model invite as the CTA instead and do not use {PROMPT_LINK}."}
 
 THE JOB OF THIS EMAIL
 Cut through an inbox full of vendor pitches. The reader is the main character of this story and Acme Corp is the assistant who clears their path. Three things must land:
@@ -437,6 +437,7 @@ CRAFT
 - Short sentences. Concrete nouns from their world (props, dock pieces, terrain, SKUs). Verbs over adjectives. Rhythm: vary sentence length; land one short line.
 - Sound like a sharp peer who looked closely, not a vendor. No "I hope", "just", "quick question", "reaching out", "leverage", "solution", "streamline".
 - Confident and warm, never breathless: no exclamation points, no emoji, no hype adjectives. Energy comes from specifics.
+- Code scores every draft for spam-filter triggers and fails it at 5 out of 10. Avoid sales and urgency phrases (act now, limited time, click here, special offer), guarantees, money talk, prices or discounts, all-caps words other than standard acronyms, and a Re: or Fwd: subject.
 
 RULES
 - Under 120 words in the body, not counting the link. Plain text. {PROMPT_LINK} appears exactly once, at the end of the sentence that offers it. No other links.
@@ -470,7 +471,7 @@ RULES
 Reply with only JSON:
 {"concept":"","why":"","prompt_used":"","format":"FBX","poly_target":8000}`,
 
-  reply: (reply, a, d, sentEmail) => `You are Agent 4, the reply agent. You write as Myko, Acme Corp's AI agent, from the same address as the first email. Sort one inbound reply into exactly one category and draft Myko's response. You never negotiate, argue, or answer outside the approved FAQ.
+  reply: (reply, a, d, sentEmail) => `You are Agent 4, the reply agent. You write as Revel, Acme Corp's AI agent, from the same address as the first email. Sort one inbound reply into exactly one category and draft Revel's response. You never negotiate, argue, or answer outside the approved FAQ.
 
 ACCOUNT: ${a ? `${a.company}; contact ${d ? d.contact.name : a.contact}, ${d ? d.contact.title : a.title}` : "unknown"}
 FIRST EMAIL WE SENT:
@@ -482,7 +483,7 @@ ${reply}
 """
 
 CATEGORIES AND ACTIONS
-- sketch_submitted: they sent a sketch or photo. Check whether the reply grants permission to generate from it ("permission_confirmed": true only if they clearly said yes or asked us to make it). If confirmed, the asset agent runs Mode B and Myko sends the private link; a human reviews before it goes. If not confirmed, ask for permission in one sentence.
+- sketch_submitted: they sent a sketch or photo. Check whether the reply grants permission to generate from it ("permission_confirmed": true only if they clearly said yes or asked us to make it). If confirmed, the asset agent runs Mode B and Revel sends the private link; a human reviews before it goes. If not confirmed, ask for permission in one sentence.
 - interested: book a call or offer a Studio trial; log an opportunity; hand to ${HANDOFF.studio} within one business day.
 - faq_question: answer only from the approved FAQ.
 - outside_faq: pricing exceptions, indemnity, security questionnaires, legal terms. Acknowledge and hand to ${HANDOFF.studio}.
@@ -497,8 +498,8 @@ APPROVED FAQ
 ${FAQ.map(f => "- " + f).join("\n")}
 
 RULES FOR THE DRAFT
-- Under 90 words, plain text, no exclamation points. Myko never claims to be human; if asked, it says "Yes, I'm an AI agent."
-- When handing to a person, Myko introduces them by name and steps out: "I'm handing you to ${HANDOFF.studio}, who'll reply today."
+- Under 90 words, plain text, no exclamation points. Revel never claims to be human; if asked, it says "Yes, I'm an AI agent."
+- When handing to a person, Revel introduces them by name and steps out: "I'm handing you to ${HANDOFF.studio}, who'll reply today."
 - Never imply support speed Acme Corp doesn't deliver; if a same-day answer isn't possible, say when a person will reply.
 - If they shared their own art, say it stays theirs, stays private, and isn't used for training.
 - Empty draft for unsubscribes.
@@ -579,12 +580,43 @@ function checkDossier(a, d) {
   return checks;
 }
 
+// Spam score: a SpamAssassin-style tally run by code on every draft, 0 to 10. Under 3 passes, 3 to 5 needs a look, 5 or more fails.
+const SPAM_ACRONYMS = new Set(["AI", "US", "USA", "UK", "EU", "SOC", "ISO", "URP", "HDRP", "GLB", "FBX", "OBJ", "STL", "USDZ", "3MF", "DCC", "API", "AR", "VR", "UV", "PBR", "LOD", "CFO", "CEO", "ROI", "SKU", "UI", "UX"]);
+const SPAM_RULES = [
+  { re: /\b(free|no cost|at no charge)\b/gi, pts: 0.5, why: "free or no-cost wording" },
+  { re: /\b(guarantee(d)?|risk[- ]free|no obligation|100% (free|satisfied|guaranteed))\b/gi, pts: 1.5, why: "guarantee language" },
+  { re: /\b(act now|limited time|urgent|hurry|don'?t miss|last chance|expires? (today|soon)|only \d+ left)\b/gi, pts: 1.5, why: "false urgency" },
+  { re: /\b(click here|click below|buy now|order now|special offer|exclusive (deal|offer)|best price|lowest price)\b/gi, pts: 1.5, why: "sales trigger phrase" },
+  { re: /\b(winner|you'?ve won|cash|earn (money|\$)|make money|extra income|double your)\b/gi, pts: 2, why: "money or prize phrase" },
+  { re: /\b(dear (friend|sir|madam)|to whom it may concern)\b/gi, pts: 1, why: "impersonal greeting" },
+  { re: /\$\d|\d+% off|\bdiscount\b|\bsave \d/gi, pts: 0.5, why: "price or discount in a cold email" },
+  { re: /\?{2,}|!{2,}|\.{4,}/g, pts: 1, why: "repeated punctuation" }
+];
+function spamScore(subject, body) {
+  const text = subject + "\n" + body;
+  const hits = [];
+  let score = 0;
+  SPAM_RULES.forEach(r => { const m = text.match(r.re); if (m) { const p = Math.min(r.pts * m.length, r.pts * 2); score += p; hits.push(`${r.why} (+${p})`); } });
+  const caps = (text.match(/\b[A-Z]{3,}\b/g) || []).filter(w => !SPAM_ACRONYMS.has(w));
+  if (caps.length) { const p = Math.min(0.5 * caps.length, 2); score += p; hits.push(`all-caps words: ${[...new Set(caps)].slice(0, 3).join(", ")} (+${p})`); }
+  if (/^\s*(re|fwd?):/i.test(subject)) { score += 2; hits.push("fake Re: or Fwd: subject (+2)"); }
+  if (/[A-Z]{4,}/.test(subject) && subject === subject.toUpperCase()) { score += 1.5; hits.push("shouted subject (+1.5)"); }
+  const links = (body.match(/https?:\/\/|\{PROMPT_LINK\}/g) || []).length;
+  if (links > 1) { const p = links - 1; score += p; hits.push(`${links} links (+${p})`); }
+  const n = words(body.replace(/\{PROMPT_LINK\}/g, ""));
+  if (links && n < 25) { score += 1; hits.push("high link-to-text ratio (+1)"); }
+  score = Math.min(10, Math.round(score * 10) / 10);
+  return { score, hits };
+}
+
 function checkEmail(a, d, e) {
   const body = (e.body_sentences || []).map(s => s.text).join(" ");
   const all = e.subject + " " + body;
   const checks = [];
   const banned = BANNED.filter(b => b.re.test(all)).map(b => b.why);
   checks.push({ ok: !banned.length, label: banned.length ? `Banned: ${banned.join("; ")}` : "No banned claims, hype, exclamation points or emoji" });
+  const sp = spamScore(e.subject || "", body);
+  checks.push({ ok: sp.score < 3, warn: sp.score >= 3 && sp.score < 5, label: `Spam score ${sp.score} / 10 (under 3 passes, 5 or more fails)${sp.hits.length ? ": " + sp.hits.join("; ") : ": no spam triggers"}` });
   const n = words(body.replace(/\{PROMPT_LINK\}/g, ""));
   checks.push({ ok: n < 120, label: `Body is ${n} words (limit under 120)` });
   const sw = words(e.subject);
@@ -848,7 +880,8 @@ function renderLibrary() {
 function renderGuard() {
   $("guard").innerHTML = `<h2>Guardrails</h2>
     <dl class="kv">
-      <dt>Sender</dt><dd>${esc(SENDER.signature)} From ${esc(SENDER.address)}. Myko never claims to be human and never uses a headshot.</dd>
+      <dt>Sender</dt><dd>${esc(SENDER.signature)} From ${esc(SENDER.address)}. Revel never claims to be human and never uses a headshot.</dd>
+      <dt>Spam score</dt><dd>Code scores every draft from 0 to 10 for spam-filter triggers: sales and urgency phrases, guarantee and money language, all-caps words, fake Re: subjects, repeated punctuation, extra links and thin text around a link. Under 3 passes, 3 to 5 needs a person to look, 5 or more sends the draft back for a rewrite.</dd>
       <dt>CAN-SPAM</dt><dd>Real sender, physical address and working opt-out on every email, added by code.</dd>
       <dt>Region</dt><dd>US contacts only during the pilot. UK, EU, Ireland, Australia and New Zealand wait for a consent review.</dd>
       <dt>Volume</dt><dd>Warmed secondary domains, 30 to 50 emails per inbox per day.</dd>
@@ -896,13 +929,13 @@ $("route-btn").onclick = async () => {
       modeB = o.permission_confirmed
         ? `<h3>Asset agent: Mode B (consented)</h3><pre>POST https://api.acmecorp.com/openapi/v1/image-to-3d\n${esc(JSON.stringify({ image_url: "<their uploaded sketch, stored privately>", should_remesh: true, should_texture: true }, null, 2))}</pre>
            <p class="note">Generates from their sketch only because they said yes in writing. The model goes to a private workspace and a private link; their input isn't used for training and is deleted on request. A person reviews before the link goes out.</p>`
-        : `<div class="banner">No written permission yet, so Mode B does not run. Myko asks first.</div>`;
+        : `<div class="banner">No written permission yet, so Mode B does not run. Revel asks first.</div>`;
     }
     $("reply-out").innerHTML = `<div class="row"><span class="pill acc">${esc(String(o.category).replace(/_/g, " "))}</span><span class="pill ${human ? "bad" : "good"}">Confidence ${Math.round((o.confidence || 0) * 100)}%</span>${human ? `<span class="pill bad">Below 0.8: a person decides</span>` : ""}</div>
       <dl class="kv"><dt>Action</dt><dd>${esc(o.action_taken)}</dd><dt>Hand to</dt><dd>${esc(o.handoff_to || "No handoff; the agent handles it")}</dd>
       <dt>Lead status</dt><dd>${esc(o.crm_update && o.crm_update.lead_status)}</dd><dt>Sequence</dt><dd>${esc(o.crm_update && o.crm_update.sequence)}</dd>
       <dt>Suppress</dt><dd>${o.crm_update && o.crm_update.suppress ? `Yes, ${esc(a ? a.domain : "")} added to the shared list` : "No"}</dd><dt>CRM note</dt><dd>${esc(o.crm_update && o.crm_update.note)}</dd></dl>
-      ${o.draft ? `<h3>Myko's draft</h3><pre>${esc(o.draft)}\n\n${esc(SENDER.signature)}</pre>` : `<p class="note">No reply is sent.</p>`}
+      ${o.draft ? `<h3>Revel's draft</h3><pre>${esc(o.draft)}\n\n${esc(SENDER.signature)}</pre>` : `<p class="note">No reply is sent.</p>`}
       ${modeB}`;
   } catch (e) {
     $("reply-out").innerHTML = `<div class="banner bad">The reply agent couldn't run: ${esc(errorCopy(e))}.</div>`;
