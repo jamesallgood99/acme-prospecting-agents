@@ -306,7 +306,7 @@ function examples() {
       ] },
     { id: "ex2", company: "Kiln & Crane Prints", domain: "kilnandcrane.example", contact: "Marco Testa", title: "Owner", email: "marco@kilnandcrane.example", country: "United States", pain: "",
       sources: [
-        { url: "https://www.etsy.example/shop/KilnAndCranePrints", text: `Kiln & Crane Prints. Resin-printed tabletop terrain and miniatures for D&D and wargaming. 2,140 sales. Shop announcement, updated ${longDate(9)}: Custom commissions are closed until January, we're backed up on sculpting. New ruined-temple terrain set dropping next month. We're a two-person shop in Columbus, Ohio.` }
+        { url: "https://www.etsy.example/shop/KilnAndCranePrints", text: `Kiln & Crane Prints. Resin-printed tabletop terrain and miniatures for D&D and wargaming. 2,140 sales. Shop announcement, updated ${longDate(9)}: Custom commissions are closed until January, we're backed up on sculpting. New ruined-temple terrain set dropping next month. We're a two-person shop in Columbus, Ohio. Every piece is sculpted by hand, by us. We don't sell AI-generated models and never will.` }
       ] },
     { id: "ex3", company: "Blue Hour Collective", domain: "bluehour.example", contact: "Sam Okafor", title: "Founder", email: "sam@bluehour.example", country: "United States", pain: "",
       sources: [
@@ -318,6 +318,80 @@ function examples() {
         { url: "https://northgate.example/careers", text: `Posted ${longDate(7)}. Northgate Interactive, a 40-person studio in Manchester, is hiring two 3D prop artists for our unannounced sci-fi shooter. Unreal Engine 5, Maya, Substance Painter.` }
       ] }
   ];
+}
+
+// Precomputed run for the second example: research finds a public anti-AI stance, so the agents stop before writing.
+function exampleRunKiln() {
+  const shop = "https://www.etsy.example/shop/KilnAndCranePrints";
+  return {
+    dossier: {
+      segment: "print_ecom", out_of_scope_reason: "",
+      team_size: { value: "2", source_url: shop },
+      what_they_make: "Resin-printed tabletop terrain and miniatures for D&D and wargaming",
+      art_style: "Hand-sculpted fantasy terrain and miniatures",
+      tool_stack: [],
+      trigger: { signal: "Custom commissions closed until January because sculpting is backed up; a new ruined-temple terrain set is due next month", date: isoDaysAgo(9), source_url: shop, fact_id: "F3" },
+      internal_pain: [],
+      target_persona: { id: "printshop", reason: "The owner of a two-person Etsy shop selling printed terrain matches the print and e-commerce persona." },
+      contact: { name: "Marco Testa", title: "Owner", email: "marco@kilnandcrane.example" },
+      ip_inventory: ["Kiln & Crane Prints logo", "Ruined-temple terrain set", "Their miniature and terrain sculpts"],
+      facts: [
+        { id: "F1", fact: "Sells resin-printed tabletop terrain and miniatures for D&D and wargaming", source_url: shop, quote: "Resin-printed tabletop terrain and miniatures for D&D and wargaming", confidence: 0.98 },
+        { id: "F2", fact: "2,140 sales on Etsy", source_url: shop, quote: "2,140 sales", confidence: 0.95 },
+        { id: "F3", fact: "Custom commissions closed until January because sculpting is backed up", source_url: shop, quote: "Custom commissions are closed until January, we're backed up on sculpting", confidence: 0.96 },
+        { id: "F4", fact: "Two-person shop in Columbus, Ohio", source_url: shop, quote: "We're a two-person shop in Columbus, Ohio", confidence: 0.97 },
+        { id: "F5", fact: "States publicly that it does not sell AI-generated models", source_url: shop, quote: "We don't sell AI-generated models and never will", confidence: 0.99 }
+      ],
+      disqualifiers: ["public_anti_ai_stance"]
+    }
+  };
+}
+
+// Precomputed run for the third example: a product-visual startup that gets a full dossier, sample and email.
+function exampleRunBlueHour() {
+  const home = "https://bluehour.example", job = "https://bluehour.example/jobs/3d-generalist";
+  return {
+    dossier: {
+      segment: "seg2", out_of_scope_reason: "",
+      team_size: { value: "6", source_url: home },
+      what_they_make: "AR try-on and 3D product visualization for direct-to-consumer home-goods brands on Shopify",
+      art_style: "Clean, true-to-scale product renders for web AR",
+      tool_stack: ["Shopify", "USDZ", "GLB"],
+      trigger: { signal: "Hiring a freelance 3D generalist to model 60 home-goods SKUs for web AR", date: isoDaysAgo(18), source_url: job, fact_id: "F2" },
+      internal_pain: [],
+      target_persona: { id: "david", reason: "The founder of a six-person product-visualization studio buying 3D assets for client storefronts matches the product-visual startup persona." },
+      contact: { name: "Sam Okafor", title: "Founder", email: "sam@bluehour.example" },
+      ip_inventory: ["Blue Hour Collective logo", "Client brands' products and product photos"],
+      facts: [
+        { id: "F1", fact: "Makes AR try-on and 3D product visualization for direct-to-consumer home-goods brands", source_url: home, quote: "making AR try-on and 3D product visualization for direct-to-consumer home-goods brands", confidence: 0.98 },
+        { id: "F2", fact: "Hiring a freelance 3D generalist for a two-month project", source_url: job, quote: "Freelance 3D generalist, two-month project", confidence: 0.97 },
+        { id: "F3", fact: "Needs 60 home-goods SKUs modeled for web AR: vases, lamps and small furniture", source_url: job, quote: "model 60 home-goods SKUs (vases, lamps, small furniture) for web AR", confidence: 0.97 },
+        { id: "F4", fact: "Each model must ship as USDZ and GLB under 5 MB", source_url: job, quote: "Must deliver USDZ and GLB under 5 MB each", confidence: 0.96 },
+        { id: "F5", fact: "Six-person studio", source_url: home, quote: "a six-person studio", confidence: 0.97 },
+        { id: "F6", fact: "Clients sell on Shopify", source_url: home, quote: "home-goods brands on Shopify", confidence: 0.95 }
+      ],
+      disqualifiers: []
+    },
+    email: {
+      subject: "Sixty home-goods SKUs for web AR, minus the wait",
+      body_sentences: [
+        { text: "Sam, Blue Hour puts a brand's vases and lamps in a shopper's own room before they buy.", sources: ["F1"] },
+        { text: "Your job post lists 60 SKUs, each due as USDZ and GLB under 5 MB.", sources: ["F3", "F4"] },
+        { text: "That's two months of modeling before your clients see their products in AR.", sources: ["F2", "PERSONA"] },
+        { text: "Acme Corp hands you the base mesh in minutes, and your team finishes it in the tools it already uses.", sources: ["L1"] },
+        { text: "Paid plans include full commercial use, so every model is yours to ship to clients.", sources: ["P6"] },
+        { text: "I've already written the prompt for a ceramic table lamp, in a clean product-render style: {PROMPT_LINK}", sources: ["F3"] },
+        { text: "Credits are set aside, so it costs nothing to run.", sources: ["L4"] }
+      ],
+      cta_type: "open_prefilled_prompt", variant: "agentic"
+    },
+    asset: {
+      mode: "A", concept: "A ceramic table lamp with a linen drum shade",
+      why: "Lamps are one of the three product types on their job post, and a generic lamp names nothing from their clients' catalogs.",
+      prompt_used: "Ceramic table lamp with a matte speckled glaze base and a linen drum shade, clean product-render style, true-to-scale proportions, PBR materials, optimized for web AR",
+      format: "GLB", poly_target: 20000
+    }
+  };
 }
 
 // Precomputed run for the first example, so the page opens with a finished dossier.
@@ -523,8 +597,8 @@ const SAMPLE_REPLIES = [
 // State
 // =====================================================================
 const store = {
-  get(k, d) { try { const v = localStorage.getItem("acme-pa3-" + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
-  set(k, v) { try { localStorage.setItem("acme-pa3-" + k, JSON.stringify(v)); } catch (e) { /* unavailable */ } }
+  get(k, d) { try { const v = localStorage.getItem("acme-pa4-" + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem("acme-pa4-" + k, JSON.stringify(v)); } catch (e) { /* unavailable */ } }
 };
 let accounts = store.get("accounts", null) || examples();
 let runs = store.get("runs", null) || {};
@@ -541,6 +615,8 @@ let suppression = store.get("suppression", ["existingcustomer.example"]).filter(
 COMPETITOR_DOMAINS.forEach(d => { if (!suppression.includes(d)) suppression.push(d); });
 let approvals = store.get("approvals", 0);
 if (!runs.ex1) runs.ex1 = exampleRun();
+if (!runs.ex2) runs.ex2 = exampleRunKiln();
+if (!runs.ex3) runs.ex3 = exampleRunBlueHour();
 let selected = accounts[0] ? accounts[0].id : null;
 let busy = {};
 let sample = null;
@@ -549,6 +625,7 @@ const save = () => { store.set("accounts", accounts); store.set("runs", runs); s
 // =====================================================================
 // Deterministic checks: code, not the model, decides what passes
 // =====================================================================
+const dqLabel = x => { const s = String(x).replace(/_/g, " ").replace(/\banti ai\b/i, "anti-AI").replace(/\babs\b/, "account-based sales"); return s.charAt(0).toUpperCase() + s.slice(1); };
 const norm = s => String(s || "").toLowerCase().replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/\s+/g, " ").trim();
 const words = s => String(s || "").split(/\s+/).filter(Boolean).length;
 const allowedSourceIds = d => new Set([...(d.facts || []).filter(f => f.verified).map(f => f.id), ...PROOF.map(p => p.id), ...LINES.map(l => l.id), ...matchIntegrations(d).map(i => i.id), "PERSONA"]);
@@ -569,7 +646,7 @@ function checkDossier(a, d) {
   if (size > 200) dq.add("over_200_route_to_abs");
   if (d.segment === "out_of_scope") dq.add("out_of_scope");
   d.disqualifiers = [...dq];
-  checks.push({ ok: !dq.size, label: dq.size ? `Disqualified: ${[...dq].map(x => x.replace(/_/g, " ")).join(", ")}` : "No disqualifiers (suppression list, region, size, segment, minors, competitors, anti-AI)" });
+  checks.push({ ok: !dq.size, label: dq.size ? `Disqualified: ${[...dq].map(dqLabel).join(", ")}` : "No disqualifiers (suppression list, region, size, segment, minors, competitors, anti-AI)" });
   const tDate = d.trigger && d.trigger.date ? new Date(d.trigger.date) : null;
   const age = tDate && !isNaN(tDate) ? Math.round((Date.now() - tDate) / DAY) : null;
   const fresh = age !== null && age <= 60;
@@ -713,7 +790,7 @@ async function runAccount(a) {
 }
 function errorCopy(e) {
   const c = e && e.code;
-  if (c === "not_granted" || c === "sampling_disabled") { showBanner("Claude access wasn't allowed, so the agents can't run here. The Lanternfish example shows a finished run."); return "Claude access wasn't allowed"; }
+  if (c === "not_granted" || c === "sampling_disabled") { showBanner("Claude access wasn't allowed, so the agents can't run here. The examples show finished runs: Lanternfish and Blue Hour reach human review, and Kiln & Crane is stopped at research."); return "Claude access wasn't allowed"; }
   if (c === "rate_limited") return "Claude is rate-limited. Wait a minute and run it again";
   if (c === "invalid_json") return "An agent returned malformed JSON. Run it again";
   if (c === "unavailable") return "Claude isn't available in this view. Open the page on claude.ai";
@@ -796,7 +873,7 @@ function renderAsset(r) {
   </div>`;
 }
 function promptLink(a, asset) {
-  const q = new URLSearchParams({ prompt: asset.prompt_used, utm_source: "myko", utm_medium: "email", utm_campaign: "smb-outbound-pilot", utm_content: a.id });
+  const q = new URLSearchParams({ prompt: asset.prompt_used, utm_source: "revel", utm_medium: "email", utm_campaign: "smb-outbound-pilot", utm_content: a.id });
   return "https://www.acmecorp.com/workspace/text-to-3d?" + q.toString();
 }
 function renderEmail(a, r) {
@@ -850,7 +927,7 @@ function renderDetail() {
   if (busy[a.id] && !r) body = `<p class="note"><span class="spinner"></span> ${esc(busy[a.id])}… research, the sample and the email usually take one to two minutes.</p>`;
   else if (!r) body = `<p class="empty">Not run yet. Run agents builds the dossier, checks disqualifiers, picks a sample and drafts touch 1.</p>`;
   else if (r.error) body = `<div class="banner bad">The run stopped: ${esc(r.error)}.</div>`;
-  else if (r.disqualified) body = `<div class="banner bad">Stopped and logged. ${esc(r.dossier.disqualifiers.map(x => x.replace(/_/g, " ")).join(", "))}. ${r.dossier.disqualifiers.includes("over_200_route_to_abs") ? "Routed to account-based sales." : r.dossier.disqualifiers.includes("public_anti_ai_stance") ? "Logged as a listening signal, not a lead." : "No email is written."}</div><div class="agents">${renderDossier(a, r)}</div>`;
+  else if (r.disqualified) body = `<div class="banner bad">Stopped and logged: ${esc(r.dossier.disqualifiers.map(dqLabel).join(", "))}. ${r.dossier.disqualifiers.includes("over_200_route_to_abs") ? "Routed to account-based sales." : r.dossier.disqualifiers.includes("public_anti_ai_stance") ? "Logged as a listening signal, not a lead." : "No email is written."}</div><div class="agents">${renderDossier(a, r)}</div>`;
   else body = `<div class="agents">${renderDossier(a, r)}${renderEmail(a, r)}${renderAsset(r)}${renderGate(r)}</div>`;
   el.innerHTML = head + body;
   $("run-one").onclick = () => runAccount(a);
@@ -978,9 +1055,9 @@ function render() { renderStats(); renderQueue(); renderDetail(); renderReplyOpt
 accounts.forEach(a => { const r = runs[a.id]; if (r && !r.error) runs[a.id] = evaluate(a, r); });
 renderLibrary(); renderGuard(); render();
 if (window.claude && typeof window.claude.use === "function") {
-  window.claude.use("sample").then(s => { sample = s; if (!s) showBanner("Claude isn't available in this view, so the agents can't run here. The Lanternfish example shows a finished run."); });
+  window.claude.use("sample").then(s => { sample = s; if (!s) showBanner("Claude isn't available in this view, so the agents can't run here. The examples show finished runs: Lanternfish and Blue Hour reach human review, and Kiln & Crane is stopped at research."); });
 } else {
-  showBanner("Claude isn't available in this view, so the agents can't run here. The Lanternfish example shows a finished run.");
+  showBanner("Claude isn't available in this view, so the agents can't run here. The examples show finished runs: Lanternfish and Blue Hour reach human review, and Kiln & Crane is stopped at research.");
 }
 </script>
 </body>
