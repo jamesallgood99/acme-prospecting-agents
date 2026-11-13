@@ -3,7 +3,8 @@
 Four Claude agents that turn public buying signals into a researched, consent-based first email for small
 studios and creative businesses. A research agent builds a sourced dossier, an asset agent writes a sample
 prompt in the prospect's genre, a writing agent drafts the email, and a reply agent sorts what comes back.
-A person approves everything before it sends.
+A person reviews the first 100 emails before they send. Once the agents have earned that trust, review drops
+to a 10% random sample so the program can scale.
 
 **[Open the live demo](https://jamesallgood99.github.io/acme-prospecting-agents/)** · Built by
 [James Allgood](https://www.linkedin.com/in/jamesallgood) · Companion to my
@@ -17,8 +18,8 @@ A person approves everything before it sends.
 Every outbound email has to prove someone looked at the account. Done by hand, that means reading the
 prospect's store or game page, job posts and about page, picking who to write to, ruling out customers and
 competitors, finding an asset in their genre, writing the email and checking every claim. That's 20 to 30
-minutes per prospect, or 300 to 500 hours for a 1,000-account test. At a $60-a-seat SMB price point, no SDR
-team pays that back.
+minutes per prospect, much of it spent chasing broken links and out-of-date data, or 300 to 500 hours for a
+1,000-account test. Those are hours SDRs could spend on the conversations that move deals forward.
 
 I ran hyper-personalized agentic email at CompScience on HubSpot, ZoomInfo and Sendoso. This repo rebuilds
 the idea in the open for a fictional company, Acme Corp, an AI 3D-model generator selling to small game
@@ -49,7 +50,8 @@ company gets consent, and every submission is a strong buying signal.
 ## Running it
 
 The demo is a single self-contained `index.html`. On GitHub Pages it shows a finished run on the Lanternfish
-Games example, along with the personas, messaging library and guardrails. The agents call Claude through the
+Games example, along with the personas, messaging library and guardrails. A five-step tour opens on your first
+visit; add `?tour` to the URL to open it again. The agents call Claude through the
 claude.ai artifact runtime (`window.claude`), so live runs on new accounts work when the page is opened as a
 Claude artifact. Nothing sends email.
 
