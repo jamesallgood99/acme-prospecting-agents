@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Acme Corp Prospecting Agents</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout: a review bench. Left = account queue; right = one account moving through research, asset, writing and the human gate. */
+:root {
+  --bg: #f3f4f6; --panel: #ffffff; --ink: #15181e; --muted: #5a6170; --line: #dcdfe5;
+  --accent: #2346d6; --accent-soft: #e5eafc;
+  --good: #1b7543; --good-soft: #e1f2e8; --warn: #95580a; --warn-soft: #fbefd9; --bad: #b0261d; --bad-soft: #fbe4e1;
+  --code: #eff1f5;
+  --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", Roboto, Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #101217; --panel: #181b22; --ink: #e8eaef; --muted: #9aa0ad; --line: #2a2f39; --accent: #7f98ff; --accent-soft: #202948;
+    --good: #5fcf8f; --good-soft: #16301f; --warn: #efb65a; --warn-soft: #32260f; --bad: #ff8a80; --bad-soft: #3a1917; --code: #12151b; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #101217; --panel: #181b22; --ink: #e8eaef; --muted: #9aa0ad; --line: #2a2f39; --accent: #7f98ff; --accent-soft: #202948;
+  --good: #5fcf8f; --good-soft: #16301f; --warn: #efb65a; --warn-soft: #32260f; --bad: #ff8a80; --bad-soft: #3a1917; --code: #12151b; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--body); }
+.top { padding: 20px 24px 14px; display: grid; gap: 10px; border-bottom: 1px solid var(--line); background: var(--panel); }
+h1 { font: 800 24px/1.15 var(--display); margin: 0; text-wrap: balance; }
+h2 { font: 600 17px/1.25 var(--display); margin: 0; text-wrap: balance; }
+h3 { font: 600 12.5px/1.3 var(--body); margin: 0; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.sub { color: var(--muted); max-width: 80ch; margin: 0; }
+.flow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; }
+.flow .step { padding: 3px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.flow .gate { background: var(--warn-soft); color: var(--warn); }
+.flow .arrow { color: var(--muted); }
+.tabs { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 24px; background: var(--panel); border-bottom: 1px solid var(--line); }
+.tabs button { border: 0; background: none; padding: 10px 14px; font: 600 14px var(--body); color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.stats { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 24px; }
+.stat { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; font-size: 13px; color: var(--muted); }
+.stat b { color: var(--ink); font-variant-numeric: tabular-nums; margin-right: 4px; }
+main { padding: 0 24px 40px; display: grid; gap: 12px; }
+.bench { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 880px) { .bench { grid-template-columns: 1fr; } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 12px; min-width: 0; }
+.queue { display: grid; gap: 8px; }
+.qitem { text-align: left; border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 10px 12px; cursor: pointer; display: grid; gap: 3px; color: var(--ink); font: inherit; }
+.qitem[aria-current="true"] { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+.qitem .name { font-weight: 600; }
+.qitem .meta { font-size: 12.5px; color: var(--muted); }
+.pill { display: inline-block; font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--code); color: var(--muted); white-space: nowrap; }
+.pill.good { background: var(--good-soft); color: var(--good); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.bad { background: var(--bad-soft); color: var(--bad); }
+.pill.acc { background: var(--accent-soft); color: var(--accent); }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.spread { justify-content: space-between; }
+.btn { border: 1px solid var(--accent); background: var(--accent); color: #fff; border-radius: 7px; padding: 7px 14px; font: 600 13.5px var(--body); cursor: pointer; }
+.btn.ghost { background: transparent; color: var(--accent); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+button:focus-visible, textarea:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+label { font-size: 13px; font-weight: 600; display: grid; gap: 4px; }
+input, textarea, select { font: 14px/1.45 var(--body); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; width: 100%; }
+textarea { resize: vertical; min-height: 70px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 560px) { .grid2 { grid-template-columns: 1fr; } }
+.agents { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 1150px) { .agents { grid-template-columns: 1fr; } }
+.agent { border: 1px solid var(--line); border-radius: 8px; padding: 12px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.agent.wide { grid-column: 1 / -1; }
+.agent .head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+td, th { border-top: 1px solid var(--line); padding: 6px; vertical-align: top; text-align: left; }
+th { font-weight: 600; color: var(--muted); font-size: 12px; border-top: 0; }
+td.id { font: 500 12px var(--mono); color: var(--accent); white-space: nowrap; }
+.quote { color: var(--muted); font-style: italic; }
+.src { font: 12px var(--mono); color: var(--muted); word-break: break-all; }
+.kv { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 4px 10px; font-size: 13.5px; margin: 0; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; min-width: 0; }
+.email { border: 1px solid var(--line); border-radius: 8px; padding: 14px; display: grid; gap: 8px; background: var(--bg); }
+.email .meta { font-size: 13px; color: var(--muted); }
+.email .subj { font-weight: 600; }
+.email p { margin: 0; max-width: 72ch; }
+.email .sig { font-size: 13px; color: var(--muted); white-space: pre-line; }
+.ref { font: 500 10.5px var(--mono); color: var(--accent); background: var(--accent-soft); border-radius: 4px; padding: 0 4px; margin-left: 3px; vertical-align: 1px; white-space: nowrap; }
+.ref.bad { color: var(--bad); background: var(--bad-soft); }
+pre { background: var(--code); border-radius: 6px; padding: 10px; overflow-x: auto; font: 12.5px/1.5 var(--mono); margin: 0; white-space: pre-wrap; word-break: break-word; }
+.checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 13.5px; }
+.checks li { display: flex; gap: 8px; align-items: baseline; }
+.empty, .note { color: var(--muted); font-size: 13.5px; margin: 0; }
+.banner { border-radius: 8px; padding: 10px 14px; font-size: 13.5px; background: var(--warn-soft); color: var(--warn); }
+.banner.bad { background: var(--bad-soft); color: var(--bad); }
+.banner.good { background: var(--good-soft); color: var(--good); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip-block { font: 500 12px var(--mono); padding: 2px 8px; border-radius: 4px; background: var(--bad-soft); color: var(--bad); }
+.hidden { display: none !important; }
+.spinner { width: 12px; height: 12px; border: 2px solid var(--accent-soft); border-top-color: var(--accent); border-radius: 50%; display: inline-block; animation: spin 0.8s linear infinite; vertical-align: -1px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+dialog { border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--ink); padding: 18px; width: min(720px, 94vw); }
+dialog::backdrop { background: rgba(10, 12, 18, 0.45); }
+.sources { display: grid; gap: 10px; }
+.source { display: grid; gap: 6px; border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
+.tablewrap { overflow-x: auto; }
+details summary { cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="top">
+  <h1>Acme Corp Prospecting Agents</h1>
+  <p class="sub">Turns public buying signals into a sourced dossier, a sample in the prospect's genre and a first email from Myko, Acme Corp's AI agent. Every sentence maps to a source or an approved proof point. Nothing sends: this prototype shows the work a person approves.</p>
+  <div class="flow" aria-label="Pipeline">
+    <span class="step">1 Research</span><span class="arrow">→</span>
+    <span class="step">3 Asset (Mode A)</span><span class="arrow">+</span>
+    <span class="step">2 Writing</span><span class="arrow">→</span>
+    <span class="step gate">Human gate</span><span class="arrow">→</span>
+    <span class="step">Send (pilot)</span><span class="arrow">→</span>
+    <span class="step">4 Reply</span><span class="arrow">→</span>
+    <span class="step">Asset (Mode B, with consent)</span>
+  </div>
+</div>
+<nav class="tabs" role="tablist">
+  <button role="tab" id="tab-bench" aria-selected="true" aria-controls="view-bench">Accounts</button>
+  <button role="tab" id="tab-replies" aria-selected="false" aria-controls="view-replies">Replies</button>
+  <button role="tab" id="tab-library" aria-selected="false" aria-controls="view-library">Personas and messaging</button>
+  <button role="tab" id="tab-guard" aria-selected="false" aria-controls="view-guard">Guardrails</button>
+</nav>
+<div class="stats" id="stats"></div>
+<main>
+  <div id="claude-banner" class="banner hidden"></div>
+
+  <section id="view-bench" role="tabpanel" aria-labelledby="tab-bench">
+    <div class="bench">
+      <div class="card">
+        <div class="row spread"><h3>Account queue</h3><button class="btn ghost" id="add-btn" type="button">Add account</button></div>
+        <div class="queue" id="queue"></div>
+        <p class="note">Example accounts and their .example URLs are fictional. Add a real account by pasting its URLs and page text.</p>
+      </div>
+      <div class="card" id="detail"></div>
+    </div>
+  </section>
+
+  <section id="view-replies" role="tabpanel" aria-labelledby="tab-replies" class="hidden">
+    <div class="bench">
+      <div class="card">
+        <h3>Inbound reply</h3>
+        <label for="reply-company">Reply to which account?<select id="reply-company"></select></label>
+        <label for="reply-text">Paste the reply<textarea id="reply-text" rows="7"></textarea></label>
+        <div class="row"><button class="btn" id="route-btn" type="button">Route reply</button></div>
+        <h3>Try a sample reply</h3>
+        <div class="row" id="reply-samples"></div>
+      </div>
+      <div class="card" id="reply-out"><p class="empty">Pick an account, paste a reply and choose Route reply. The reply agent picks one of nine categories, takes the safe action itself, and hands money, legal terms and live buyers to a person. Below 0.8 confidence, a person decides.</p></div>
+    </div>
+  </section>
+
+  <section id="view-library" role="tabpanel" aria-labelledby="tab-library" class="hidden">
+    <div class="card" id="library"></div>
+  </section>
+
+  <section id="view-guard" role="tabpanel" aria-labelledby="tab-guard" class="hidden">
+    <div class="card" id="guard"></div>
+  </section>
+</main>
+
+<dialog id="add-dialog">
+  <form id="add-form" class="card" style="border:0;padding:0">
+    <h2>Add an account</h2>
+    <div class="grid2">
+      <label for="f-company">Company<input id="f-company" required></label>
+      <label for="f-domain">Domain<input id="f-domain" placeholder="studio.com"></label>
+      <label for="f-contact">Contact name (from your data provider)<input id="f-contact"></label>
+      <label for="f-title">Contact title<input id="f-title" placeholder="Art Director"></label>
+      <label for="f-email">Business email<input id="f-email" type="email"></label>
+      <label for="f-country">Contact country<input id="f-country" placeholder="United States"></label>
+    </div>
+    <div class="sources" id="f-sources"></div>
+    <button class="btn ghost" type="button" id="add-source">Add another source</button>
+    <label for="f-pain">Employee-review themes (optional; themes only, never quoted to the prospect)<textarea id="f-pain" rows="3"></textarea></label>
+    <div class="row"><button class="btn" type="submit">Add to queue</button><button class="btn ghost" type="button" id="add-cancel">Cancel</button></div>
+  </form>
+</dialog>
+
+<script>
+"use strict";
+// =====================================================================
+// Fixed context from the PRD: persona table, messaging library, banned claims
+// =====================================================================
+const PERSONAS = [
+  { id: "marcus", name: "Marcus, art director", seg: "Seg 3", role: "Champion", signals: "Job posts for 3D or environment artists; a game announced on Steam; studio of 10 to 200", angle: "Base meshes for props at volume, inside the pipeline; seniors back on hero work", pride: "More of your team's taste in every frame", trust: "Private to your workspace by default", cta: "sketch_to_model", cold: true },
+  { id: "techartist", name: "Tech artist or pipeline TD", seg: "Seg 3", role: "Technical evaluator", signals: "Job posts naming Unity, Unreal, Houdini or Blender; GDC Tech Art talks", angle: "Poly budgets, export formats, engine-ready PBR", pride: "Your pipeline, your rules", trust: "Cost shown before every generation; failed runs are free", cta: "sketch_to_model_poly_target", cold: true },
+  { id: "producer", name: "Producer", seg: "Seg 3", role: "Schedule owner", signals: "Milestone or launch dates on Steam or Kickstarter", angle: "Hours, not days, for background assets; a fixed 2-week pilot", pride: "None needed", trust: "A named owner contact and a same-day answer", cta: "pilot_scope", cold: true },
+  { id: "elena", name: "Elena, studio head", seg: "Seg 3", role: "Economic buyer", signals: "Only after a champion replies or 3+ paid users on the domain", angle: "Lower cost per asset, defensible AI use", pride: "Use AI and keep your artists' respect", trust: "One-page AI-use statement she can share", cta: "champion_forward", cold: false },
+  { id: "priya", name: "Priya, environment artist", seg: "Seg 3", role: "End user and quiet veto", signals: "Never targeted cold with a sales pitch", angle: "Craft stays hers; Acme Corp takes the grind", pride: "You're the artist. Acme Corp's the assistant.", trust: "Her studio decides whether its work trains the model", cta: "certification_invite", cold: true },
+  { id: "javier", name: "Javier, solo commercial dev", seg: "Seg 2", role: "Buyer and user", signals: "Upcoming Steam page, Kickstarter, devlog activity", angle: "One person, a whole cast, rigged and engine-ready", pride: "Your characters, your world, shipped", trust: "Full commercial rights", cta: "sketch_to_model", cold: true },
+  { id: "clau", name: "Clau, freelance 3D artist", seg: "Seg 2", role: "Buyer and user", signals: "ArtStation or Fab portfolio; freelance listings", angle: "Blockouts and variations in minutes, refined in their own tools", pride: "Acme Corp roughs it out. You give it your signature.", trust: "Private by default; opt out of training", cta: "certification_invite", cold: true },
+  { id: "milan", name: "Milan, agent builder", seg: "Seg 2", role: "Technical buyer", signals: "GitHub repos or posts using MCP, Claude Code, Codex or Cursor", angle: "Give your agent a 3D skill through the API and MCP", pride: "Your system, now in 3D", trust: "Cost shown before every API call", cta: "api_docs_credits", cold: true },
+  { id: "david", name: "David, product-visual startup", seg: "Seg 2", role: "Buyer", signals: "Shopify or AR storefront with product imagery; app redesign", angle: "Web-ready GLB assets at volume", pride: "Make the product the star", trust: "Commercial rights on every paid plan", cta: "sample_in_category", cold: true },
+  { id: "printshop", name: "Print and e-commerce shop", seg: "Print/e-com", role: "Owner-operator", signals: "Etsy or Shopify shop selling printed goods", angle: "Print-ready models from a sketch, watertight and slicer-ready", pride: "You designed it. Acme Corp built it.", trust: "Your designs stay yours", cta: "sketch_to_model", cold: true }
+];
+const PROOF = [
+  { id: "P1", text: "Jupiter: 98% faster", use: "Speed, Seg 3", src: "Acme Corp /enterprise case study" },
+  { id: "P2", text: "Thorns Tavern: 80% lower cost", use: "Cost per asset, Seg 3", src: "Acme Corp /enterprise case study" },
+  { id: "P3", text: "37 Interactive: 30 to 40% less high-poly work", use: "Tech artist, Seg 3", src: "Acme Corp /enterprise case study" },
+  { id: "P4", text: "Trained only on licensed data", use: "Trust, every persona", src: "Acme Corp /enterprise" },
+  { id: "P5", text: "Opt out of model training on any plan, even free", use: "Trust, artists", src: "Acme Corp data and training FAQ" },
+  { id: "P6", text: "Paid plans: private licence, full commercial use, models stay yours if you cancel", use: "Trust, Seg 2", src: "Acme Corp licence docs" },
+  { id: "P7", text: "SOC 2 and ISO 27001", use: "Trust, Elena and producers", src: "Acme Corp /enterprise" },
+  { id: "P8", text: "Up to 97% slicer success rate", use: "Print shops", src: "Acme Corp 3D Agent launch" },
+  { id: "P9", text: "Nexon, Supercell, Square Enix, DNEG as customers", use: "Credibility, Seg 3", src: "Acme Corp /enterprise logos" }
+];
+const LINES = [
+  { id: "L1", text: "Base mesh in minutes, finished in your tools." },
+  { id: "L2", text: "Cost shown before every generation; failed runs are free." },
+  { id: "L3", text: "Ask every 3D AI vendor who owns what you make, who can see it, and whether it trains their model. Acme Corp puts its answers in writing." },
+  { id: "L4", text: "Promotional credits are already set aside for you, so trying it costs nothing." },
+  { id: "L5", text: "Acme Corp Certified is a free course and practical exam that ends in a shareable credential." }
+];
+// Acme Corp integrations, from acmecorp.com/integrations and the Acme Corp DCC connector docs (supported versions).
+const INTEGRATIONS = [
+  { id: "I-UNITY", name: "Unity", kind: "engine", match: /\bunity\b/i, versions: "2018.4 to 6000.5", line: "Acme Corp's Unity plugin imports models straight into your project" },
+  { id: "I-UNREAL", name: "Unreal Engine", kind: "engine", match: /\bunreal|\bue ?[45]\b/i, versions: "5.0 to 5.8", line: "Acme Corp's Unreal Engine plugin imports models straight into your project" },
+  { id: "I-GODOT", name: "Godot", kind: "engine", match: /\bgodot\b/i, versions: "4.4 to 4.7", line: "Acme Corp's Godot plugin imports models straight into your project" },
+  { id: "I-ROBLOX", name: "Roblox Studio", kind: "engine", match: /\broblox\b/i, versions: "Studio plugin", line: "Acme Corp's Roblox Studio plugin brings models straight into your place" },
+  { id: "I-BLENDER", name: "Blender", kind: "dcc", match: /\bblender\b/i, versions: "4.5 to 5.2", line: "Acme Corp's Blender add-on sends models straight into your scene" },
+  { id: "I-MAYA", name: "Maya", kind: "dcc", match: /\bmaya\b/i, versions: "2023 to 2027", line: "Acme Corp's Maya plugin sends models straight into your scene" },
+  { id: "I-3DSMAX", name: "3ds Max", kind: "dcc", match: /3ds ?max/i, versions: "2023 to 2027", line: "Acme Corp's 3ds Max plugin sends models straight into your scene" },
+  { id: "I-HOUDINI", name: "Houdini", kind: "dcc", match: /\bhoudini\b/i, versions: "20.5 to 22.0", line: "Acme Corp's Houdini connector sends models straight into your scene" },
+  { id: "I-BAMBU", name: "Bambu Studio", kind: "slicer", match: /\bbambu\b/i, versions: "Slicer", line: "Acme Corp sends print-ready models straight to Bambu Studio" },
+  { id: "I-ORCA", name: "OrcaSlicer", kind: "slicer", match: /\borca ?slicer\b/i, versions: "Slicer", line: "Acme Corp sends print-ready models straight to OrcaSlicer" }
+];
+// Engines and tools the account names, read from the dossier's tool stack and its verified facts.
+function matchIntegrations(d) {
+  const hay = [...(d.tool_stack || []), ...(d.facts || []).filter(f => f.verified !== false).map(f => f.fact + " " + f.quote)].join(" ");
+  return INTEGRATIONS.filter(i => i.match.test(hay));
+}
+const BANNED = [
+  { re: /\b(1[25]|20)\s?m(illion)?\b|\bmillions? of (users|creators)\b/i, why: "User counts are banned (sources disagree, and Tripo wins that fight)" },
+  { re: /\b4\.7\b/, why: "The 4.7 rating is banned (invited reviews)" },
+  { re: /1,?331|blind test/i, why: "The unpublished blind test is banned" },
+  { re: /\breplac(e|es|ing)\b|\bheadcount\b|faster than (your )?artists|beat(s|ing)? a (human )?modeler/i, why: "No replacing artists or headcount language" },
+  { re: /\b(tripo|rodin|hunyuan)/i, why: "No naming competitors in a cold email" },
+  { re: /!/, why: "No exclamation points" },
+  { re: /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u, why: "No emoji" },
+  { re: /\b(revolutionary|game-?changing|cutting-edge|incredible|amazing|stunning|magic(al)?)\b/i, why: "No hype adjectives" }
+];
+const FAQ = [
+  "Who owns what Acme Corp makes? On paid plans you get a private licence and full commercial use, and models stay yours if you cancel.",
+  "Does my work train the model? Any plan, including free, can opt out of model training. Acme Corp is trained only on licensed data.",
+  "Who can see my models? Generations on paid plans are private to your workspace.",
+  "What does it cost? Cost is shown before every generation, and failed runs are free. Studio is $60 per seat per month.",
+  "What formats? GLB, FBX, OBJ and USDZ for engines and web, STL and 3MF for print.",
+  "Does it work with our engine? Acme Corp has plugins for Unity, Unreal Engine, Godot and Roblox Studio, plus Blender, Maya, 3ds Max and Houdini, and sends print files to Bambu Studio and OrcaSlicer.",
+  "Is Acme Corp certified for security? SOC 2 and ISO 27001."
+];
+const SENDER = {
+  name: "Myko",
+  address: "myko@[warmed outreach domain]",
+  signature: "Myko, Acme Corp's AI agent. A person on the Acme Corp team reads every reply.",
+  postal: "Acme Corp, [physical mailing address]",
+  optout: "Reply \"stop\" and I won't email you again."
+};
+const HANDOFF = { studio: "Jordan on our studio team", support: "the Acme Corp support team" };
+const RESTRICTED_COUNTRIES = /\b(united kingdom|uk|england|scotland|wales|northern ireland|ireland|australia|new zealand|germany|france|spain|italy|netherlands|sweden|denmark|finland|norway|poland|belgium|austria|portugal|czech|greece|eu)\b/i;
+
+// =====================================================================
+// Example accounts (fictional; dates are set relative to today)
+// =====================================================================
+const DAY = 864e5;
+const isoDaysAgo = n => new Date(Date.now() - n * DAY).toISOString().slice(0, 10);
+const longDate = n => new Date(Date.now() - n * DAY).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+function examples() {
+  return [
+    { id: "ex1", company: "Lanternfish Games", domain: "lanternfish.example", contact: "Dana Whitfield", title: "Art Director", email: "dana@lanternfish.example", country: "United States",
+      pain: "Four reviews from the last year mention crunch before milestones; three mention a small art team stretched across two projects.",
+      sources: [
+        { url: "https://store.steampowered.example/app/tidewreck", text: `Tidewreck. A cozy pirate roguelite where you rebuild a sunken harbor town one shipwreck at a time. Hand-painted, stylized low-poly art. Coming to Early Access spring 2027. Developer: Lanternfish Games. Announced ${longDate(21)}.` },
+        { url: "https://lanternfish.example/careers/3d-environment-artist", text: `Posted ${longDate(12)}. 3D Environment Artist (6-month contract). We're looking for an artist to help us build out 40+ harbor props and modular dock pieces in our hand-painted style. You'll work in Blender and hand off to Unity (URP). Experience with texture atlases a plus.` },
+        { url: "https://lanternfish.example/about", text: "Lanternfish Games is a 24-person independent studio in Austin, Texas. We make warm, handcrafted games. Our first game, Saltmarsh, shipped in 2023." }
+      ] },
+    { id: "ex2", company: "Kiln & Crane Prints", domain: "kilnandcrane.example", contact: "Marco Testa", title: "Owner", email: "marco@kilnandcrane.example", country: "United States", pain: "",
+      sources: [
+        { url: "https://www.etsy.example/shop/KilnAndCranePrints", text: `Kiln & Crane Prints. Resin-printed tabletop terrain and miniatures for D&D and wargaming. 2,140 sales. Shop announcement, updated ${longDate(9)}: Custom commissions are closed until January, we're backed up on sculpting. New ruined-temple terrain set dropping next month. We're a two-person shop in Columbus, Ohio.` }
+      ] },
+    { id: "ex3", company: "Blue Hour Collective", domain: "bluehour.example", contact: "Sam Okafor", title: "Founder", email: "sam@bluehour.example", country: "United States", pain: "",
+      sources: [
+        { url: "https://bluehour.example", text: "Blue Hour Collective is a six-person studio making AR try-on and 3D product visualization for direct-to-consumer home-goods brands on Shopify." },
+        { url: "https://bluehour.example/jobs/3d-generalist", text: `Posted ${longDate(18)}. Freelance 3D generalist, two-month project: model 60 home-goods SKUs (vases, lamps, small furniture) for web AR. Must deliver USDZ and GLB under 5 MB each.` }
+      ] },
+    { id: "ex4", company: "Northgate Interactive", domain: "northgate.example", contact: "Ellie Shaw", title: "Lead Artist", email: "ellie@northgate.example", country: "United Kingdom", pain: "",
+      sources: [
+        { url: "https://northgate.example/careers", text: `Posted ${longDate(7)}. Northgate Interactive, a 40-person studio in Manchester, is hiring two 3D prop artists for our unannounced sci-fi shooter. Unreal Engine 5, Maya, Substance Painter.` }
+      ] }
+  ];
+}
+
+// Precomputed run for the first example, so the page opens with a finished dossier.
+function exampleRun() {
+  return {
+    dossier: {
+      segment: "seg3", out_of_scope_reason: "",
+      team_size: { value: "24", source_url: "https://lanternfish.example/about" },
+      what_they_make: "Tidewreck, a cozy pirate roguelite about rebuilding a sunken harbor town",
+      art_style: "Hand-painted, stylized low-poly",
+      tool_stack: ["Blender", "Unity (URP)"],
+      trigger: { signal: "Hiring a contract 3D environment artist for 40+ harbor props and modular dock pieces", date: isoDaysAgo(12), source_url: "https://lanternfish.example/careers/3d-environment-artist", fact_id: "F3" },
+      internal_pain: ["Crunch before milestones", "Small art team stretched across two projects"],
+      target_persona: { id: "marcus", reason: "The contact is the art director at a 24-person studio hiring for a prop backlog, which matches the champion persona. First touch goes to the champion, not the studio head." },
+      contact: { name: "Dana Whitfield", title: "Art Director", email: "dana@lanternfish.example" },
+      ip_inventory: ["Tidewreck", "Saltmarsh", "Lanternfish Games logo", "Tidewreck's harbor town and ships"],
+      facts: [
+        { id: "F1", fact: "Tidewreck is a cozy pirate roguelite about rebuilding a sunken harbor town", source_url: "https://store.steampowered.example/app/tidewreck", quote: "A cozy pirate roguelite where you rebuild a sunken harbor town", confidence: 0.98 },
+        { id: "F2", fact: "Art style is hand-painted, stylized low-poly", source_url: "https://store.steampowered.example/app/tidewreck", quote: "Hand-painted, stylized low-poly art", confidence: 0.98 },
+        { id: "F3", fact: "Hiring a 6-month contract artist for 40+ harbor props and modular dock pieces", source_url: "https://lanternfish.example/careers/3d-environment-artist", quote: "build out 40+ harbor props and modular dock pieces", confidence: 0.97 },
+        { id: "F4", fact: "Pipeline runs from Blender into Unity URP", source_url: "https://lanternfish.example/careers/3d-environment-artist", quote: "You'll work in Blender and hand off to Unity (URP)", confidence: 0.95 },
+        { id: "F5", fact: "Early Access planned for spring 2027", source_url: "https://store.steampowered.example/app/tidewreck", quote: "Coming to Early Access spring 2027", confidence: 0.95 },
+        { id: "F6", fact: "24-person independent studio in Austin, Texas", source_url: "https://lanternfish.example/about", quote: "a 24-person independent studio in Austin, Texas", confidence: 0.97 }
+      ],
+      disqualifiers: []
+    },
+    email: {
+      subject: "Tidewreck's harbor, minus the 40-prop backlog",
+      body_sentences: [
+        { text: "Dana, Tidewreck already has the hard part: a hand-painted look people will know from one screenshot.", sources: ["F1", "F2"] },
+        { text: "Your job post says the harbor still needs 40+ props and modular dock pieces.", sources: ["F3"] },
+        { text: "That's a long queue standing between your team and the hero work only they can do.", sources: ["F3", "PERSONA"] },
+        { text: "Acme Corp hands you the base mesh in minutes, and its Blender and Unity plugins drop it straight into the pipeline you already run.", sources: ["L1", "I-BLENDER", "I-UNITY", "F4"] },
+        { text: "Thorns Tavern cut its cost per asset by 80% working this way.", sources: ["P2"] },
+        { text: "I've already written the prompt for your first dock piece, in your style: {PROMPT_LINK}", sources: ["F2", "F3"] },
+        { text: "Credits are set aside, so it costs nothing to run, and what you make stays private to your workspace.", sources: ["L4", "PERSONA"] }
+      ],
+      cta_type: "open_prefilled_prompt", variant: "agentic"
+    },
+    asset: {
+      mode: "A", concept: "A modular wooden dock section with mooring posts",
+      why: "It's the exact asset type on their job post, in their style, with nothing of theirs named.",
+      prompt_used: "Modular wooden dock section with weathered planks, two rope-wrapped mooring posts and an iron lantern hook, stylized low-poly, hand-painted textures, warm palette, game-ready prop that tiles end to end",
+      format: "FBX", poly_target: 8000
+    }
+  };
+}
+
+// =====================================================================
+// Prompts (each agent is its own prompt with a strict JSON schema)
+// =====================================================================
+const today = () => new Date().toISOString().slice(0, 10);
+const personaTable = () => PERSONAS.map(p => `- ${p.id} | ${p.name} (${p.seg}) | ${p.role} | signals: ${p.signals} | lead angle: ${p.angle} | pride: "${p.pride}" | trust: ${p.trust} | first CTA: ${p.cta}${p.cold ? "" : " | NOT for cold first touch"}`).join("\n");
+
+const PROMPTS = {
+  research: a => `You are Agent 1, the research agent for Acme Corp's outbound pilot. Turn the sources below into a sourced dossier. Today is ${today()}.
+
+ACCOUNT
+Company: ${a.company} (${a.domain || "no domain given"})
+Contact from licensed data provider: ${a.contact || "unknown"}, ${a.title || "title unknown"}, ${a.email || "no email"}, country: ${a.country || "unknown"}
+
+SOURCES (the only evidence you may use; cite by URL)
+${a.sources.map((s, i) => `[S${i + 1}] ${s.url}\n"""\n${s.text}\n"""`).join("\n\n")}
+
+EMPLOYEE-REVIEW THEMES (shape the angle only; never quote, never cite to the prospect)
+${a.pain || "none provided"}
+
+PERSONA TABLE (pick exactly one target_persona by id)
+${personaTable()}
+
+RULES
+1. Every fact has a source_url from the list above and a quote copied word for word from that source (4 to 20 words). No fact without a URL. No inference stated as fact: "hiring two environment artists" needs the job post; "must be behind on props" does not go in.
+2. segment is "seg2" (solo commercial devs, freelance 3D artists, agent builders, product-visual startups), "seg3" (game studios of 10 to 200 people), "print_ecom" (sells 3D-printed or 3D-visualized products), or "out_of_scope".
+3. Disqualifiers (list every one that applies): "existing_customer", "over_200_route_to_abs", "school_student_or_minor", "competitor_employee", "public_anti_ai_stance", "restricted_region" (contact or company outside the United States during the pilot), "hobby_under_10".
+4. trigger is the most recent dated signal (job post, announcement, store update) with its date as YYYY-MM-DD. If no date is stated, leave date empty.
+5. ip_inventory lists the prospect's own characters, game titles, products, logos and named art. These are DO NOT GENERATE.
+6. internal_pain is a list of short themes from the employee-review notes only, never quotes. Empty if none.
+7. Business role only. No personal-life details. Drop facts older than 12 months unless they describe the company itself.
+8. Studio heads and other economic buyers are never the cold first touch; if the contact is one, say so in target_persona.reason and pick them anyway so a person can reroute.
+
+Reply with only JSON:
+{"segment":"seg3","out_of_scope_reason":"","team_size":{"value":"","source_url":""},"what_they_make":"","art_style":"","tool_stack":[],"trigger":{"signal":"","date":"","source_url":"","fact_id":"F1"},"internal_pain":[],"target_persona":{"id":"","reason":""},"contact":{"name":"","title":"","email":""},"ip_inventory":[],"facts":[{"id":"F1","fact":"","source_url":"","quote":"","confidence":0.9}],"disqualifiers":[]}`,
+
+  writing: (a, d, asset, feedback) => {
+    const p = PERSONAS.find(x => x.id === d.target_persona.id) || PERSONAS[0];
+    return `You are Agent 2, the writing agent. Write touch 1 of a cold email from Myko, Acme Corp's AI agent, to one person. Myko never claims to be human.
+
+RECIPIENT: ${d.contact.name || "there"}, ${d.contact.title || ""} at ${a.company}
+PERSONA: ${p.name}. Lead angle: ${p.angle}. Pride toehold: "${p.pride}". Trust line: ${p.trust}. First CTA: ${p.cta}.
+${p.id === "priya" ? "This is an artist: send the certification invite only. Never pitch cost savings.\n" : ""}
+DOSSIER FACTS (cite by id)
+${d.facts.map(f => `${f.id}: ${f.fact} (${f.source_url})`).join("\n")}
+Trigger: ${d.trigger.signal}
+Internal themes (shape the angle; never mention them or where they came from): ${(d.internal_pain || []).join("; ") || "none"}
+Do not name or describe generating anything from: ${(d.ip_inventory || []).join(", ")}
+
+APPROVED PROOF POINTS (cite by id; pick the one that fits this persona)
+${PROOF.map(x => `${x.id}: ${x.text} (use for: ${x.use})`).join("\n")}
+APPROVED LINES (cite by id)
+${LINES.map(x => `${x.id}: ${x.text}`).join("\n")}
+Persona lines above may be cited as "PERSONA".
+
+ACME CORP INTEGRATIONS FOR THE TOOLS THEY NAME (cite by id)
+${(() => { const m = matchIntegrations(d); return m.length ? m.map(i => `${i.id}: ${i.line} (${i.name}, ${i.kind})`).join("\n") + (m.some(i => i.kind === "engine") ? "\nThey hire for or build in a game engine. One sentence MUST tie Acme Corp to that engine by name through its plugin, cited to its id, as part of the cure: the asset lands in the engine they already use, no import step. Name their DCC tool too if it fits in the same sentence." : "") : "None of their named tools has a Acme Corp integration. Do not claim one."; })()}
+
+PREFILLED PROMPT: ${asset && asset.concept ? `Myko has already written a Acme Corp prompt for "${asset.concept}" in their style. The placeholder {PROMPT_LINK} opens Acme Corp with that prompt loaded.` : "None this time. Use the sketch-to-model invite as the CTA instead and do not use {PROMPT_LINK}."}
+
+THE JOB OF THIS EMAIL
+Cut through an inbox full of vendor pitches. The reader is the main character of this story and Acme Corp is the assistant who clears their path. Three things must land:
+1. Ego: open on THEM. Name something real they built or announced (a cited fact) and say what it shows about their taste or ambition. Make them feel seen by someone who looked at the work. Use the persona's pride toehold.
+2. Pain, then cure: name the visible pain the facts point to (a backlog, a hiring gap, a launch date, a commission queue) in concrete terms and what it keeps them from. Then show how Acme Corp removes it, in the persona's lead angle, with one approved proof point. The internal themes may sharpen which pain you pick; never mention them.
+3. The link: tell them the prompt for their first asset is already written in their style, and give {PROMPT_LINK} as the single call to action. The work is theirs from the first click.
+Then one short trust line from the persona's trust column, and that credits are set aside (L4).
+
+CRAFT
+- Subject: 6 to 9 words, about their work and their pain, never about Acme Corp. Make it specific enough that it could only be for them.
+- Short sentences. Concrete nouns from their world (props, dock pieces, terrain, SKUs). Verbs over adjectives. Rhythm: vary sentence length; land one short line.
+- Sound like a sharp peer who looked closely, not a vendor. No "I hope", "just", "quick question", "reaching out", "leverage", "solution", "streamline".
+- Confident and warm, never breathless: no exclamation points, no emoji, no hype adjectives. Energy comes from specifics.
+
+RULES
+- Under 120 words in the body, not counting the link. Plain text. {PROMPT_LINK} appears exactly once, at the end of the sentence that offers it. No other links.
+- An opinion about their work (what it shows about their taste) needs no source but must not state a fact; any fact needs a source.
+- Never claim to have generated anything from their IP. Never use "replace", "headcount" or "faster than your artists". No user counts, ratings, the blind test, or competitor names.
+- Promise "base mesh in minutes, finished in your tools", never one-click final assets.
+- Every sentence with a factual claim lists its sources (fact ids, proof ids, line ids or "PERSONA"). A sentence you cannot source does not go in. Greetings and the CTA can have empty sources.
+- No signature, address or opt-out; code adds them.
+${feedback ? `\nYOUR LAST DRAFT FAILED THESE CHECKS. Fix every one:\n${feedback}\n` : ""}
+Reply with only JSON:
+{"subject":"","body_sentences":[{"text":"","sources":["F1"]}],"cta_type":"open_prefilled_prompt","variant":"agentic"}`;
+  },
+
+  asset: (a, d) => `You are Agent 3, the asset agent, in Mode A (cold, no consent). Write the Acme Corp Text to 3D prompt for the first asset this prospect actually needs. It is used twice: Acme Corp pre-generates a preview, and the email links them to Acme Corp with this prompt already loaded so they run it themselves. Pick the asset type their trigger names (a dock piece from a prop job post, a terrain tile from a print shop's new set, a lamp from a product SKU list), described generically in their style.
+
+TRIGGER: ${d.trigger && d.trigger.signal}
+
+WHAT THEY MAKE: ${d.what_they_make}
+ART STYLE: ${d.art_style}
+TOOL STACK: ${(d.tool_stack || []).join(", ") || "unknown"}
+SEGMENT: ${d.segment}
+DO NOT GENERATE (blocklist): ${(d.ip_inventory || []).join(", ")}
+
+RULES
+1. The asset type they need, as a generic object: "modular wooden dock section", not their named location; "ruined temple column terrain tile", not their product name. If the trigger names no asset, pick a generic object in their genre.
+2. The prompt may describe a style. It may never name or describe anything on the blocklist, and must make sense to someone who has never heard of the company.
+3. Under 400 characters; concrete about shape, materials, style and use.
+4. format: FBX or GLB for game engines, GLB or USDZ for web and AR, STL or 3MF for print. poly_target: a sensible budget for their stack (props 3,000 to 15,000 triangles; web AR under 5 MB; print can be higher and must be watertight).
+5. Never pick characters or anything with faces or hands; those are where accuracy complaints cluster.
+
+Reply with only JSON:
+{"concept":"","why":"","prompt_used":"","format":"FBX","poly_target":8000}`,
+
+  reply: (reply, a, d, sentEmail) => `You are Agent 4, the reply agent. You write as Myko, Acme Corp's AI agent, from the same address as the first email. Sort one inbound reply into exactly one category and draft Myko's response. You never negotiate, argue, or answer outside the approved FAQ.
+
+ACCOUNT: ${a ? `${a.company}; contact ${d ? d.contact.name : a.contact}, ${d ? d.contact.title : a.title}` : "unknown"}
+FIRST EMAIL WE SENT:
+${sentEmail || "not available"}
+
+THE REPLY
+"""
+${reply}
+"""
+
+CATEGORIES AND ACTIONS
+- sketch_submitted: they sent a sketch or photo. Check whether the reply grants permission to generate from it ("permission_confirmed": true only if they clearly said yes or asked us to make it). If confirmed, the asset agent runs Mode B and Myko sends the private link; a human reviews before it goes. If not confirmed, ask for permission in one sentence.
+- interested: book a call or offer a Studio trial; log an opportunity; hand to ${HANDOFF.studio} within one business day.
+- faq_question: answer only from the approved FAQ.
+- outside_faq: pricing exceptions, indemnity, security questionnaires, legal terms. Acknowledge and hand to ${HANDOFF.studio}.
+- not_now: stop the sequence, move to the certification nurture track, set a 90-day check (or the date they give).
+- wrong_person: thank them, create the new contact, restart research for that person.
+- anti_ai: one polite close, suppress the domain, log as a listening signal. Never argue.
+- existing_user_support: a billing or support issue from a current user. Route to ${HANDOFF.support} with the thread; no sales follow-up.
+- unsubscribe_legal: remove me, a complaint, or a legal threat. Suppress immediately across all domains; no reply except a legal complaint, which goes to a human.
+Out-of-office replies: category "out_of_office", pause and resume after the return date.
+
+APPROVED FAQ
+${FAQ.map(f => "- " + f).join("\n")}
+
+RULES FOR THE DRAFT
+- Under 90 words, plain text, no exclamation points. Myko never claims to be human; if asked, it says "Yes, I'm an AI agent."
+- When handing to a person, Myko introduces them by name and steps out: "I'm handing you to ${HANDOFF.studio}, who'll reply today."
+- Never imply support speed Acme Corp doesn't deliver; if a same-day answer isn't possible, say when a person will reply.
+- If they shared their own art, say it stays theirs, stays private, and isn't used for training.
+- Empty draft for unsubscribes.
+
+Reply with only JSON:
+{"category":"","confidence":0.0,"permission_confirmed":false,"action_taken":"","handoff_to":"","crm_update":{"lead_status":"","sequence":"continue|pause|stop","suppress":false,"note":""},"draft":""}`
+};
+
+const SAMPLE_REPLIES = [
+  { label: "Sketch, with permission", text: "Ok, curious. Here's a rough sketch of a lighthouse lamp we still haven't modeled (attached). Go ahead and make a model from it." },
+  { label: "Interested", text: "The crate sample is close to our style. How would Studio work for our art team? Could we do a call next week?" },
+  { label: "FAQ", text: "Before I send anything: does our concept art end up training your model?" },
+  { label: "Indemnity", text: "Our publisher will want IP indemnity before we use any AI tool. Do you offer that?" },
+  { label: "Anti-AI", text: "We don't use generative AI at our studio. Please don't contact us again about it." },
+  { label: "Billing", text: "I'm already a Acme Corp user and I was charged annually when I picked monthly. Who do I talk to?" },
+  { label: "Not now", text: "Heads-down until our February milestone. Maybe after that." },
+  { label: "Wrong person", text: "Not me, talk to our tech artist, Rae, she owns the pipeline." }
+];
+
+// =====================================================================
+// State
+// =====================================================================
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("acme-pa3-" + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem("acme-pa3-" + k, JSON.stringify(v)); } catch (e) { /* unavailable */ } }
+};
+let accounts = store.get("accounts", null) || examples();
+let runs = store.get("runs", null) || {};
+// AI 3D generation vendors. Web domains; confirm each against the email domains your data provider returns.
+const COMPETITOR_DOMAINS = [
+  "tripo3d.ai", "vastai3d.com",            // Tripo (VAST)
+  "hyper3d.ai", "deemos.com",              // Rodin (Deemos)
+  "tencent.com",                           // Hunyuan3D
+  "csm.ai", "kaedim3d.com", "sloyd.ai", "3daistudio.com", "alpha3d.io",
+  "lumalabs.ai", "spline.design", "masterpiecex.com", "neural4d.com",
+  "backflip.ai", "hitem3d.ai", "customuse.com", "fast3d.io", "3dfy.ai"
+];
+let suppression = store.get("suppression", ["existingcustomer.example"]).filter(d => d !== "competitor3d.example");
+COMPETITOR_DOMAINS.forEach(d => { if (!suppression.includes(d)) suppression.push(d); });
+let approvals = store.get("approvals", 0);
+if (!runs.ex1) runs.ex1 = exampleRun();
+let selected = accounts[0] ? accounts[0].id : null;
+let busy = {};
+let sample = null;
+const save = () => { store.set("accounts", accounts); store.set("runs", runs); store.set("suppression", suppression); store.set("approvals", approvals); };
+
+// =====================================================================
+// Deterministic checks: code, not the model, decides what passes
+// =====================================================================
+const norm = s => String(s || "").toLowerCase().replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/\s+/g, " ").trim();
+const words = s => String(s || "").split(/\s+/).filter(Boolean).length;
+const allowedSourceIds = d => new Set([...(d.facts || []).filter(f => f.verified).map(f => f.id), ...PROOF.map(p => p.id), ...LINES.map(l => l.id), ...matchIntegrations(d).map(i => i.id), "PERSONA"]);
+
+function checkDossier(a, d) {
+  const byUrl = Object.fromEntries(a.sources.map(s => [s.url, norm(s.text)]));
+  d.facts = (d.facts || []).map(f => Object.assign(f, { verified: !!byUrl[f.source_url] && !!f.quote && byUrl[f.source_url].includes(norm(f.quote)) }));
+  const checks = [];
+  const unverified = d.facts.filter(f => !f.verified);
+  checks.push({ ok: !unverified.length, label: unverified.length ? `Not found word for word at the cited URL: ${unverified.map(f => f.id).join(", ")} (dropped from the email)` : `All ${d.facts.length} facts quote their source URL word for word` });
+  const dq = new Set(d.disqualifiers || []);
+  const domains = [(a.domain || ""), (a.email || "").split("@")[1] || ""].map(x => x.toLowerCase().trim()).filter(Boolean);
+  const onList = s => domains.some(d => d === s.toLowerCase() || d.endsWith("." + s.toLowerCase()));
+  if (suppression.some(s => COMPETITOR_DOMAINS.includes(s) && onList(s))) dq.add("competitor_employee");
+  else if (suppression.some(onList)) dq.add("suppression_list");
+  if (RESTRICTED_COUNTRIES.test(a.country || "")) dq.add("restricted_region");
+  const size = parseInt(String(d.team_size && d.team_size.value).replace(/[^0-9]/g, ""), 10);
+  if (size > 200) dq.add("over_200_route_to_abs");
+  if (d.segment === "out_of_scope") dq.add("out_of_scope");
+  d.disqualifiers = [...dq];
+  checks.push({ ok: !dq.size, label: dq.size ? `Disqualified: ${[...dq].map(x => x.replace(/_/g, " ")).join(", ")}` : "No disqualifiers (suppression list, region, size, segment, minors, competitors, anti-AI)" });
+  const tDate = d.trigger && d.trigger.date ? new Date(d.trigger.date) : null;
+  const age = tDate && !isNaN(tDate) ? Math.round((Date.now() - tDate) / DAY) : null;
+  const fresh = age !== null && age <= 60;
+  const tFact = d.facts.find(f => f.id === (d.trigger && d.trigger.fact_id));
+  checks.push({ ok: fresh && !!(tFact && tFact.verified), label: age === null ? "Trigger has no date, so it can't be shown to be under 60 days old" : fresh ? `Trigger is ${age} days old and sourced` : `Trigger is ${age} days old (limit 60)` });
+  const persona = PERSONAS.find(p => p.id === (d.target_persona && d.target_persona.id));
+  checks.push({ ok: !!persona && persona.cold, warn: !!persona && !persona.cold, label: !persona ? "No valid persona match" : persona.cold ? `Persona: ${persona.name}` : `${persona.name} is never a cold first touch; reroute to a champion` });
+  return checks;
+}
+
+function checkEmail(a, d, e) {
+  const body = (e.body_sentences || []).map(s => s.text).join(" ");
+  const all = e.subject + " " + body;
+  const checks = [];
+  const banned = BANNED.filter(b => b.re.test(all)).map(b => b.why);
+  checks.push({ ok: !banned.length, label: banned.length ? `Banned: ${banned.join("; ")}` : "No banned claims, hype, exclamation points or emoji" });
+  const n = words(body.replace(/\{PROMPT_LINK\}/g, ""));
+  checks.push({ ok: n < 120, label: `Body is ${n} words (limit under 120)` });
+  const sw = words(e.subject);
+  checks.push({ ok: sw >= 6 && sw <= 9, warn: sw >= 5 && sw <= 10, label: `Subject is ${sw} words (6 to 9)` });
+  const ok = allowedSourceIds(d);
+  const bad = [];
+  (e.body_sentences || []).forEach(s => (s.sources || []).forEach(id => { if (!ok.has(id)) bad.push(id); }));
+  checks.push({ ok: !bad.length, label: bad.length ? `Cites sources that aren't verified or approved: ${[...new Set(bad)].join(", ")}` : "Every cited source is a verified fact or an approved line" });
+  const claimy = (e.body_sentences || []).filter(s => !(s.sources || []).length && /\d|%|acme|private|train|licen|rights|credit|soc|iso/i.test(s.text) && !/\?$/.test(s.text.trim()) && !/\b(send|reply)\b/i.test(s.text));
+  checks.push({ ok: !claimy.length, label: claimy.length ? `Unsourced claim: "${claimy[0].text.slice(0, 80)}"` : "No unsourced claims" });
+  const ctas = (body.match(/\b(send (me|us)|reply with|book a|enroll|sign up|join the|grab a time)\b/gi) || []).length;
+  checks.push({ ok: ctas <= 1, label: ctas <= 1 ? "One CTA" : `${ctas} asks; keep one` });
+  const raw = (body.match(/https?:\/\//g) || []).length;
+  const ph = (body.match(/\{PROMPT_LINK\}/g) || []).length;
+  const wantLink = !!(e._hasPrompt);
+  checks.push({ ok: raw === 0 && (wantLink ? ph === 1 : ph === 0), label: raw ? "The model wrote its own URL; only the prefilled prompt link is allowed" : wantLink ? (ph === 1 ? "One link: the prefilled Acme Corp prompt" : `Prefilled prompt link appears ${ph} times (needs exactly 1)`) : (ph ? "Links a prompt that wasn't approved" : "No links (no approved prompt, sketch invite instead)") });
+  const engines = matchIntegrations(d).filter(i => i.kind === "engine");
+  if (engines.length) {
+    const cited = (e.body_sentences || []).some(s => (s.sources || []).some(id => engines.some(i => i.id === id)));
+    checks.push({ ok: cited, label: cited ? `Names Acme Corp's integration for the engine they hire for (${engines.map(i => i.name).join(", ")})` : `They hire for ${engines.map(i => i.name).join(", ")}, but the email doesn't mention Acme Corp's plugin` });
+  }
+  const ipHit = (d.ip_inventory || []).filter(t => t && t.length > 3 && new RegExp(`(made|generated|built|turned|modeled)[^.]{0,40}${t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`, "i").test(body));
+  checks.push({ ok: !ipHit.length, label: ipHit.length ? `Claims to have generated their IP: ${ipHit.join(", ")}` : "Never claims to have generated anything from their IP" });
+  return checks;
+}
+
+function checkAsset(d, asset) {
+  const prompt = norm(asset.prompt_used);
+  const terms = new Set();
+  (d.ip_inventory || []).forEach(t => { terms.add(t); String(t).split(/[^A-Za-z0-9&']+/).filter(w => w.length > 3 && /^[A-Z]/.test(w) && !/^(Logo|Game|Games|Studio)$/.test(w)).forEach(w => terms.add(w)); });
+  const hits = [...terms].filter(t => t && prompt.includes(norm(t)));
+  const faces = /\b(face|faces|hand|hands|character|characters|person|creature|portrait)\b(?!-)/i.test(asset.prompt_used);
+  return [
+    { ok: !hits.length, label: hits.length ? `Prompt touches the DO NOT GENERATE list: ${hits.join(", ")}` : "IP check passed: nothing from the blocklist in the prompt" },
+    { ok: !faces, warn: faces, label: faces ? "Prompt includes faces, hands or characters, where accuracy complaints cluster" : "No faces, hands or characters in the sample" },
+    { ok: asset.prompt_used.length <= 600, label: `Prompt is ${asset.prompt_used.length} characters` }
+  ];
+}
+
+function evaluate(a, r) {
+  r.dossierChecks = checkDossier(a, r.dossier);
+  r.disqualified = r.dossier.disqualifiers.length > 0;
+  if (!r.disqualified && r.email) {
+    r.assetChecks = r.asset ? checkAsset(r.dossier, r.asset) : [];
+    if (r.asset && r.assetChecks.some(c => !c.ok && !c.warn)) r.asset.skipped = true;
+    r.email._hasPrompt = !!(r.asset && !r.asset.skipped);
+    r.emailChecks = checkEmail(a, r.dossier, r.email);
+  }
+  const hard = c => c.some(x => !x.ok && !x.warn);
+  r.status = r.disqualified ? "stopped" : r.approved ? "approved" : (hard(r.emailChecks || []) || hard(r.dossierChecks.filter(c => !/Not found/.test(c.label)))) ? "human" : "review";
+  return r;
+}
+
+// =====================================================================
+// Claude
+// =====================================================================
+async function ask(prompt, tier) {
+  if (!sample) throw { code: "unavailable", message: "Claude isn't available in this view" };
+  return sample.json(prompt, { modelTier: tier });
+}
+
+async function runAccount(a) {
+  const set = s => { busy[a.id] = s; render(); };
+  try {
+    set("Researching");
+    const dossier = await ask(PROMPTS.research(a), "default");
+    const r = { dossier, rewrites: 0 };
+    r.dossierChecks = checkDossier(a, dossier);
+    if (dossier.disqualifiers.length) { runs[a.id] = evaluate(a, r); delete busy[a.id]; save(); render(); return; }
+    dossier.facts = dossier.facts.filter(f => f.verified);
+    set("Picking a sample");
+    const asset = await ask(PROMPTS.asset(a, dossier), "quick");
+    asset.mode = "A";
+    if (checkAsset(dossier, asset).some(c => !c.ok && !c.warn)) asset.skipped = true;
+    set("Writing");
+    let email = await ask(PROMPTS.writing(a, dossier, asset.skipped ? null : asset), "complex");
+    email._hasPrompt = !asset.skipped;
+    let fails = checkEmail(a, dossier, email).filter(c => !c.ok && !c.warn);
+    if (fails.length) {
+      set("Rewriting once");
+      r.firstDraftFailures = fails.map(c => c.label);
+      email = await ask(PROMPTS.writing(a, dossier, asset.skipped ? null : asset, fails.map(c => "- " + c.label).join("\n")), "complex");
+      email._hasPrompt = !asset.skipped;
+      r.rewrites = 1;
+    }
+    email.variant = "agentic";
+    Object.assign(r, { asset, email });
+    runs[a.id] = evaluate(a, r);
+  } catch (e) {
+    runs[a.id] = { error: errorCopy(e) };
+  }
+  delete busy[a.id];
+  save(); render();
+}
+function errorCopy(e) {
+  const c = e && e.code;
+  if (c === "not_granted" || c === "sampling_disabled") { showBanner("Claude access wasn't allowed, so the agents can't run here. The Lanternfish example shows a finished run."); return "Claude access wasn't allowed"; }
+  if (c === "rate_limited") return "Claude is rate-limited. Wait a minute and run it again";
+  if (c === "invalid_json") return "An agent returned malformed JSON. Run it again";
+  if (c === "unavailable") return "Claude isn't available in this view. Open the page on claude.ai";
+  return (e && e.message) || "Something went wrong. Run it again";
+}
+
+// =====================================================================
+// Render
+// =====================================================================
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const STATUS = { approved: ["good", "Approved"], review: ["warn", "Ready for human review"], human: ["bad", "Failed self-check: human rewrite"], stopped: ["bad", "Stopped: disqualified"] };
+function pill(a) {
+  if (busy[a.id]) return `<span class="pill acc"><span class="spinner"></span> ${esc(busy[a.id])}</span>`;
+  const r = runs[a.id];
+  if (!r) return `<span class="pill">Not run</span>`;
+  if (r.error) return `<span class="pill bad">Error</span>`;
+  const [c, l] = STATUS[r.status];
+  return `<span class="pill ${c}">${l}</span>`;
+}
+const checkList = cs => `<ul class="checks">${cs.map(c => `<li><span class="pill ${c.ok ? "good" : c.warn ? "warn" : "bad"}">${c.ok ? "Pass" : c.warn ? "Check" : "Fail"}</span><span>${esc(c.label)}</span></li>`).join("")}</ul>`;
+
+function renderStats() {
+  const rs = Object.entries(runs).filter(([id, r]) => accounts.some(a => a.id === id) && r && !r.error).map(([, r]) => r);
+  const n = s => rs.filter(r => r.status === s).length;
+  const facts = rs.reduce((t, r) => t + (r.dossier.facts || []).length, 0);
+  const left = Math.max(0, 100 - approvals);
+  $("stats").innerHTML = [
+    `<span class="stat"><b>${rs.length}</b>researched</span>`,
+    `<span class="stat"><b>${n("stopped")}</b>disqualified</span>`,
+    `<span class="stat"><b>${rs.length ? (facts / rs.length).toFixed(1) : 0}</b>facts per dossier</span>`,
+    `<span class="stat"><b>${n("review")}</b>ready for review</span>`,
+    `<span class="stat"><b>${n("human")}</b>need a human rewrite</span>`,
+    `<span class="stat"><b>${n("approved")}</b>approved</span>`,
+    `<span class="stat"><b>${left}</b>${left ? "reviews before 10% sampling" : "on 10% sampling"}</span>`
+  ].join("");
+}
+function renderQueue() {
+  $("queue").innerHTML = accounts.map(a => `<button class="qitem" type="button" data-id="${a.id}" aria-current="${a.id === selected}">
+      <span class="row spread"><span class="name">${esc(a.company)}</span>${pill(a)}</span>
+      <span class="meta">${esc(a.contact || "No contact")}, ${esc(a.title || "title unknown")}</span>
+      <span class="meta">${esc(a.country || "")} · ${a.sources.length} source${a.sources.length === 1 ? "" : "s"}</span></button>`).join("");
+  $("queue").querySelectorAll(".qitem").forEach(b => b.onclick = () => { selected = b.dataset.id; render(); });
+}
+
+function renderDossier(a, r) {
+  const d = r.dossier;
+  const persona = PERSONAS.find(p => p.id === (d.target_persona && d.target_persona.id));
+  return `<div class="agent wide">
+    <div class="head"><h3>1 Research agent: dossier</h3><span class="pill acc">${esc(String(d.segment).replace("_", "/"))}</span></div>
+    <dl class="kv">
+      <dt>Makes</dt><dd>${esc(d.what_they_make)}</dd>
+      <dt>Team size</dt><dd>${esc(d.team_size && d.team_size.value || "Unknown")} ${d.team_size && d.team_size.source_url ? `<span class="src">${esc(d.team_size.source_url)}</span>` : ""}</dd>
+      <dt>Art style</dt><dd>${esc(d.art_style || "Unknown")}</dd>
+      <dt>Tool stack</dt><dd>${esc((d.tool_stack || []).join(", ") || "Not named on any page")}</dd>
+      <dt>Acme Corp plugs into</dt><dd>${matchIntegrations(d).length ? matchIntegrations(d).map(i => `<span class="pill ${i.kind === "engine" ? "acc" : ""}">${esc(i.name)}</span>`).join(" ") : "<span class='note'>No matching integration</span>"}</dd>
+      <dt>Trigger</dt><dd>${esc(d.trigger && d.trigger.signal)}${d.trigger && d.trigger.date ? ` · ${esc(d.trigger.date)}` : ""} <span class="src">${esc(d.trigger && d.trigger.source_url)}</span></dd>
+      <dt>Persona</dt><dd><b>${esc(persona ? persona.name : d.target_persona && d.target_persona.id)}</b>. ${esc(d.target_persona && d.target_persona.reason)}</dd>
+      <dt>Contact</dt><dd>${esc(d.contact && d.contact.name)}, ${esc(d.contact && d.contact.title)} · ${esc(d.contact && d.contact.email)}</dd>
+      <dt>Internal pain</dt><dd>${esc((d.internal_pain || []).join("; ") || "None recorded")} <span class="note">(angle only, never cited)</span></dd>
+      <dt>DO NOT GENERATE</dt><dd><div class="chips">${(d.ip_inventory || []).map(t => `<span class="chip-block">${esc(t)}</span>`).join("") || "<span class='note'>Nothing listed</span>"}</div></dd>
+    </dl>
+    <div class="tablewrap"><table><thead><tr><th>ID</th><th>Fact and quote</th><th>Source</th><th>Conf.</th><th></th></tr></thead><tbody>
+      ${(d.facts || []).map(f => `<tr><td class="id">${esc(f.id)}</td><td>${esc(f.fact)}<br><span class="quote">"${esc(f.quote)}"</span></td><td class="src">${esc(f.source_url)}</td><td>${esc(f.confidence)}</td><td><span class="pill ${f.verified ? "good" : "bad"}">${f.verified ? "Verified" : "Not at URL"}</span></td></tr>`).join("")}
+    </tbody></table></div>
+    ${checkList(r.dossierChecks)}
+  </div>`;
+}
+function renderAsset(r) {
+  const s = r.asset;
+  if (!s) return "";
+  const endpoint = "POST https://api.acmecorp.com/openapi/v2/text-to-3d";
+  const payload = { mode: "preview", prompt: s.prompt_used, should_remesh: true, target_polycount: s.poly_target };
+  return `<div class="agent">
+    <div class="head"><h3>3 Asset agent: Mode A</h3>${s.skipped ? `<span class="pill bad">No sample sent</span>` : `<span class="pill acc">${esc(s.format)} · ${Number(s.poly_target || 0).toLocaleString()} tris</span>`}</div>
+    <dl class="kv"><dt>Sample</dt><dd>${esc(s.concept)}</dd><dt>Why</dt><dd>${esc(s.why)}</dd></dl>
+    <pre>${endpoint}\n${esc(JSON.stringify(payload, null, 2))}</pre>
+    ${checkList(r.assetChecks || [])}
+    <dl class="kv"><dt>asset_url</dt><dd class="src">Set by the live call on campaign credits</dd><dt>quality_check</dt><dd>Skipped in the prototype; live runs check poly count and defects, max three tries</dd><dt>Label</dt><dd>AI-generated sample from Acme Corp</dd></dl>
+  </div>`;
+}
+function promptLink(a, asset) {
+  const q = new URLSearchParams({ prompt: asset.prompt_used, utm_source: "myko", utm_medium: "email", utm_campaign: "smb-outbound-pilot", utm_content: a.id });
+  return "https://www.acmecorp.com/workspace/text-to-3d?" + q.toString();
+}
+function renderEmail(a, r) {
+  const e = r.email;
+  if (!e) return "";
+  const ok = allowedSourceIds(r.dossier);
+  const link = r.asset && !r.asset.skipped ? promptLink(a, r.asset) : "";
+  const linkHTML = link ? `<a href="${esc(link)}" target="_blank" rel="noopener">${esc(link.slice(0, 64))}…</a>` : "";
+  const body = (e.body_sentences || []).map(s => esc(s.text).replace("{PROMPT_LINK}", linkHTML) +(s.sources || []).map(id => `<span class="ref${ok.has(id) ? "" : " bad"}">${esc(id)}</span>`).join("")).join(" ");
+  const sourceOf = id => {
+    const f = (r.dossier.facts || []).find(x => x.id === id); if (f) return f.source_url;
+    const p = PROOF.find(x => x.id === id); if (p) return `${p.text} (${p.src})`;
+    const l = LINES.find(x => x.id === id); if (l) return `Approved line: ${l.text}`;
+    const ig = INTEGRATIONS.find(x => x.id === id); if (ig) return `${ig.name} integration, supported ${ig.versions} (acmecorp.com/integrations)`;
+    if (id === "PERSONA") return "Persona table: lead angle, pride or trust line";
+    return "Not found";
+  };
+  return `<div class="agent">
+    <div class="head"><h3>2 Writing agent: touch 1</h3><span class="pill">${esc(e.cta_type)}</span></div>
+    <div class="email">
+      <div class="meta">From: ${esc(SENDER.name)} &lt;${esc(SENDER.address)}&gt; · To: ${esc(r.dossier.contact && r.dossier.contact.email)}</div>
+      <div class="subj">${esc(e.subject)}</div>
+      <p>${body}</p>
+      <div class="sig">${esc(SENDER.signature)}\n${esc(SENDER.postal)}\n${esc(SENDER.optout)}</div>
+    </div>
+    ${link ? `<p class="note">The link opens Acme Corp's Text to 3D workspace with the prompt for "${esc(r.asset.concept)}" already loaded, tagged for attribution. It assumes Acme Corp supports a prompt parameter; until it does, it points at a tracked landing page that preloads the same prompt and its preview.</p>` : ""}
+    <details open><summary class="note">Claim map: each sentence and its source</summary>
+      <div class="tablewrap"><table><tbody>${(e.body_sentences || []).filter(s => (s.sources || []).length).map(s => `<tr><td>${esc(s.text.replace("{PROMPT_LINK}", "[prefilled prompt link]"))}</td><td>${s.sources.map(id => `<div><span class="ref${ok.has(id) ? "" : " bad"}">${esc(id)}</span> <span class="src">${esc(sourceOf(id))}</span></div>`).join("")}</td></tr>`).join("")}</tbody></table></div>
+    </details>
+    ${r.firstDraftFailures ? `<p class="note">First draft failed: ${esc(r.firstDraftFailures.join("; "))}. Rewritten once.</p>` : ""}
+    <h3>Self-check</h3>${checkList(r.emailChecks || [])}
+  </div>`;
+}
+function renderGate(r) {
+  const canApprove = r.status === "review";
+  return `<div class="agent wide">
+    <div class="head"><h3>Human gate</h3>${pill(accounts.find(x => x.id === selected))}</div>
+    <p class="note">${r.status === "human" ? "The self-check still fails after one rewrite, so a person rewrites it before it can be approved." : approvals < 100 ? `A person approves every email until 100 are approved (${approvals} so far), then a 10% random sample. Sending pauses if the QA pass rate drops below 95%, complaints pass 0.1%, or any IP rule breaks.` : "Past 100 approvals: a 10% random sample is reviewed."}</p>
+    <div class="row"><button class="btn" type="button" id="approve" ${canApprove ? "" : "disabled"}>${r.status === "approved" ? "Approved" : "Approve for the pilot send"}</button><span class="note">Nothing sends from this prototype.</span></div>
+  </div>`;
+}
+function renderDetail() {
+  const a = accounts.find(x => x.id === selected);
+  const el = $("detail");
+  if (!a) { el.innerHTML = `<p class="empty">Add an account to start.</p>`; return; }
+  const r = runs[a.id];
+  const head = `<div class="row spread"><div><h2>${esc(a.company)}</h2><p class="note">${esc(a.contact || "")}${a.title ? ", " + esc(a.title) : ""} · ${esc(a.domain || "")} · ${esc(a.country || "")}</p></div>
+    <div class="row">${pill(a)}<button class="btn${r ? " ghost" : ""}" type="button" id="run-one" ${busy[a.id] ? "disabled" : ""}>${r ? "Run again" : "Run agents"}</button><button class="btn ghost" type="button" id="remove-one">Remove</button></div></div>
+    <details><summary class="note">Sources the research agent may read (${a.sources.length})</summary>${a.sources.map(s => `<p class="src">${esc(s.url)}</p><pre>${esc(s.text)}</pre>`).join("")}${a.pain ? `<p class="note">Employee-review themes: ${esc(a.pain)}</p>` : ""}</details>`;
+  let body = "";
+  if (busy[a.id] && !r) body = `<p class="note"><span class="spinner"></span> ${esc(busy[a.id])}… research, the sample and the email usually take one to two minutes.</p>`;
+  else if (!r) body = `<p class="empty">Not run yet. Run agents builds the dossier, checks disqualifiers, picks a sample and drafts touch 1.</p>`;
+  else if (r.error) body = `<div class="banner bad">The run stopped: ${esc(r.error)}.</div>`;
+  else if (r.disqualified) body = `<div class="banner bad">Stopped and logged. ${esc(r.dossier.disqualifiers.map(x => x.replace(/_/g, " ")).join(", "))}. ${r.dossier.disqualifiers.includes("over_200_route_to_abs") ? "Routed to account-based sales." : r.dossier.disqualifiers.includes("public_anti_ai_stance") ? "Logged as a listening signal, not a lead." : "No email is written."}</div><div class="agents">${renderDossier(a, r)}</div>`;
+  else body = `<div class="agents">${renderDossier(a, r)}${renderEmail(a, r)}${renderAsset(r)}${renderGate(r)}</div>`;
+  el.innerHTML = head + body;
+  $("run-one").onclick = () => runAccount(a);
+  $("remove-one").onclick = () => { accounts = accounts.filter(x => x.id !== a.id); delete runs[a.id]; selected = accounts[0] ? accounts[0].id : null; save(); render(); };
+  const ap = $("approve"); if (ap) ap.onclick = () => { r.approved = true; r.status = "approved"; approvals++; save(); render(); };
+}
+
+function renderLibrary() {
+  $("library").innerHTML = `<h2>Fixed context the agents load</h2>
+    <p class="note">From the PRD. The writing and reply agents can only use these lines; anything else goes to a person.</p>
+    <h3>Persona table</h3>
+    <div class="tablewrap"><table><thead><tr><th>Persona</th><th>Role</th><th>Signals</th><th>Lead angle</th><th>Pride</th><th>Trust line</th><th>First CTA</th></tr></thead><tbody>
+    ${PERSONAS.map(p => `<tr><td><b>${esc(p.name)}</b><br><span class="note">${esc(p.seg)}</span></td><td>${esc(p.role)}</td><td>${esc(p.signals)}</td><td>${esc(p.angle)}</td><td>${esc(p.pride)}</td><td>${esc(p.trust)}</td><td>${esc(p.cta.replace(/_/g, " "))}${p.cold ? "" : " <span class='pill warn'>not cold</span>"}</td></tr>`).join("")}
+    </tbody></table></div>
+    <h3>Approved proof points</h3>
+    <div class="tablewrap"><table><tbody>${PROOF.map(p => `<tr><td class="id">${p.id}</td><td>${esc(p.text)}</td><td>${esc(p.use)}</td><td class="src">${esc(p.src)}</td></tr>`).join("")}</tbody></table></div>
+    <h3>Approved lines</h3>
+    <div class="tablewrap"><table><tbody>${LINES.map(l => `<tr><td class="id">${l.id}</td><td>${esc(l.text)}</td></tr>`).join("")}</tbody></table></div>
+    <h3>Acme Corp integrations (cited when the account names the tool)</h3>
+    <div class="tablewrap"><table><tbody>${INTEGRATIONS.map(i => `<tr><td class="id">${i.id}</td><td>${esc(i.name)}</td><td>${esc(i.kind)}</td><td>${esc(i.versions)}</td><td>${esc(i.line)}</td></tr>`).join("")}</tbody></table></div>
+    <p class="note">When a job post or page names a game engine, the email must name Acme Corp's plugin for it. Code fails the draft otherwise.</p>
+    <h3>Banned (checked by code on every draft)</h3>
+    <ul class="checks">${BANNED.map(b => `<li><span class="pill bad">Ban</span><span>${esc(b.why)}</span></li>`).join("")}</ul>
+    <h3>Approved FAQ for the reply agent</h3>
+    <ul class="checks">${FAQ.map(f => `<li><span class="pill">FAQ</span><span>${esc(f)}</span></li>`).join("")}</ul>`;
+}
+function renderGuard() {
+  $("guard").innerHTML = `<h2>Guardrails</h2>
+    <dl class="kv">
+      <dt>Sender</dt><dd>${esc(SENDER.signature)} From ${esc(SENDER.address)}. Myko never claims to be human and never uses a headshot.</dd>
+      <dt>CAN-SPAM</dt><dd>Real sender, physical address and working opt-out on every email, added by code.</dd>
+      <dt>Region</dt><dd>US contacts only during the pilot. UK, EU, Ireland, Australia and New Zealand wait for a consent review.</dd>
+      <dt>Volume</dt><dd>Warmed secondary domains, 30 to 50 emails per inbox per day.</dd>
+      <dt>Human review</dt><dd>Every email until 100 are approved, then a 10% random sample.</dd>
+      <dt>Kill switches</dt><dd>Sending pauses if the QA pass rate drops below 95%, spam complaints pass 0.1%, or any IP rule breaks.</dd>
+      <dt>IP</dt><dd>No generation from a prospect's characters, logos, products, screenshots, store photos or concept art without written permission. No public posting of any sample without separate permission. Every sample is labeled AI-generated.</dd>
+    </dl>
+    <p class="note">The list starts with ${COMPETITOR_DOMAINS.length} AI 3D vendor domains: Tripo, Rodin, Hunyuan3D, CSM, Kaedim, Sloyd, 3D AI Studio, Alpha3D, Luma AI, Spline, Masterpiece X, Neural4D, Backflip, Hitem3D, Customuse, Fast3D and 3DFY. Research checks the company domain and the contact's email domain against it.</p>
+    <label for="supp">Shared suppression list: customers, unsubscribes, anti-AI replies and competitors (one domain per line)<textarea id="supp" rows="5">${esc(suppression.join("\n"))}</textarea></label>
+    <div class="row"><button class="btn" type="button" id="save-supp">Save list</button><span class="note" id="supp-msg"></span></div>`;
+  $("save-supp").onclick = () => {
+    suppression = $("supp").value.split("\n").map(s => s.trim()).filter(Boolean);
+    accounts.forEach(a => { const r = runs[a.id]; if (r && !r.error) runs[a.id] = evaluate(a, r); });
+    save(); render(); $("supp-msg").textContent = "Saved. Every dossier was re-checked against the list.";
+  };
+}
+
+// Replies
+function renderReplyOptions() {
+  const sel = $("reply-company"); const cur = sel.value;
+  sel.innerHTML = accounts.map(a => `<option value="${a.id}">${esc(a.company)}</option>`).join("");
+  if (cur && accounts.some(a => a.id === cur)) sel.value = cur;
+}
+$("reply-samples").innerHTML = SAMPLE_REPLIES.map((s, i) => `<button class="btn ghost" type="button" data-i="${i}">${esc(s.label)}</button>`).join("");
+$("reply-samples").querySelectorAll("button").forEach(b => b.onclick = () => { $("reply-text").value = SAMPLE_REPLIES[b.dataset.i].text; });
+$("route-btn").onclick = async () => {
+  const text = $("reply-text").value.trim();
+  if (!text) { $("reply-out").innerHTML = `<p class="empty">Paste a reply first.</p>`; return; }
+  const a = accounts.find(x => x.id === $("reply-company").value);
+  const r = a && runs[a.id];
+  const d = r && r.dossier;
+  const sent = r && r.email ? `${r.email.subject}\n${r.email.body_sentences.map(s => s.text).join(" ")}` : "";
+  $("route-btn").disabled = true;
+  $("reply-out").innerHTML = `<p class="note"><span class="spinner"></span> Reply agent is reading it…</p>`;
+  try {
+    const o = await ask(PROMPTS.reply(text, a, d, sent), "default");
+    const human = (o.confidence || 0) < 0.8;
+    if (["unsubscribe_legal", "anti_ai"].includes(o.category) && a && a.domain) {
+      o.crm_update = Object.assign({}, o.crm_update, { suppress: true, sequence: "stop" });
+      if (!suppression.includes(a.domain)) { suppression.push(a.domain); save(); }
+    }
+    if (o.category === "unsubscribe_legal" && !/legal|lawyer|attorney|complaint/i.test(text)) o.draft = "";
+    let modeB = "";
+    if (o.category === "sketch_submitted") {
+      modeB = o.permission_confirmed
+        ? `<h3>Asset agent: Mode B (consented)</h3><pre>POST https://api.acmecorp.com/openapi/v1/image-to-3d\n${esc(JSON.stringify({ image_url: "<their uploaded sketch, stored privately>", should_remesh: true, should_texture: true }, null, 2))}</pre>
+           <p class="note">Generates from their sketch only because they said yes in writing. The model goes to a private workspace and a private link; their input isn't used for training and is deleted on request. A person reviews before the link goes out.</p>`
+        : `<div class="banner">No written permission yet, so Mode B does not run. Myko asks first.</div>`;
+    }
+    $("reply-out").innerHTML = `<div class="row"><span class="pill acc">${esc(String(o.category).replace(/_/g, " "))}</span><span class="pill ${human ? "bad" : "good"}">Confidence ${Math.round((o.confidence || 0) * 100)}%</span>${human ? `<span class="pill bad">Below 0.8: a person decides</span>` : ""}</div>
+      <dl class="kv"><dt>Action</dt><dd>${esc(o.action_taken)}</dd><dt>Hand to</dt><dd>${esc(o.handoff_to || "No handoff; the agent handles it")}</dd>
+      <dt>Lead status</dt><dd>${esc(o.crm_update && o.crm_update.lead_status)}</dd><dt>Sequence</dt><dd>${esc(o.crm_update && o.crm_update.sequence)}</dd>
+      <dt>Suppress</dt><dd>${o.crm_update && o.crm_update.suppress ? `Yes, ${esc(a ? a.domain : "")} added to the shared list` : "No"}</dd><dt>CRM note</dt><dd>${esc(o.crm_update && o.crm_update.note)}</dd></dl>
+      ${o.draft ? `<h3>Myko's draft</h3><pre>${esc(o.draft)}\n\n${esc(SENDER.signature)}</pre>` : `<p class="note">No reply is sent.</p>`}
+      ${modeB}`;
+  } catch (e) {
+    $("reply-out").innerHTML = `<div class="banner bad">The reply agent couldn't run: ${esc(errorCopy(e))}.</div>`;
+  }
+  $("route-btn").disabled = false;
+};
+
+// Tabs
+document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
+  document.querySelectorAll(".tabs button").forEach(x => x.setAttribute("aria-selected", String(x === b)));
+  ["bench", "replies", "library", "guard"].forEach(v => $("view-" + v).classList.toggle("hidden", "tab-" + v !== b.id));
+});
+
+// Add account
+function sourceRow(i) {
+  const div = document.createElement("div");
+  div.className = "source";
+  div.innerHTML = `<label for="src-url-${i}">Source URL<input id="src-url-${i}" class="src-url" type="url" placeholder="https://store.steampowered.com/app/…"></label>
+    <label for="src-text-${i}">Page text: paste what's on the page<textarea id="src-text-${i}" class="src-text" rows="4"></textarea></label>`;
+  return div;
+}
+let srcCount = 0;
+$("add-btn").onclick = () => { $("add-form").reset(); $("f-sources").innerHTML = ""; srcCount = 0; $("f-sources").append(sourceRow(srcCount++)); $("add-dialog").showModal(); };
+$("add-source").onclick = () => $("f-sources").append(sourceRow(srcCount++));
+$("add-cancel").onclick = () => $("add-dialog").close();
+$("add-form").addEventListener("submit", e => {
+  e.preventDefault();
+  const urls = [...document.querySelectorAll(".src-url")].map(x => x.value.trim());
+  const texts = [...document.querySelectorAll(".src-text")].map(x => x.value.trim());
+  const sources = urls.map((u, i) => ({ url: u, text: texts[i] })).filter(s => s.url && s.text);
+  const a = { id: "a" + Date.now(), company: $("f-company").value.trim(), domain: $("f-domain").value.trim(), contact: $("f-contact").value.trim(), title: $("f-title").value.trim(), email: $("f-email").value.trim(), country: $("f-country").value.trim(), pain: $("f-pain").value.trim(), sources };
+  if (!a.company || !sources.length) return;
+  accounts.push(a); selected = a.id; save(); $("add-dialog").close(); render();
+});
+
+function showBanner(msg) { const b = $("claude-banner"); b.textContent = msg; b.classList.remove("hidden"); }
+function render() { renderStats(); renderQueue(); renderDetail(); renderReplyOptions(); }
+
+// Boot
+accounts.forEach(a => { const r = runs[a.id]; if (r && !r.error) runs[a.id] = evaluate(a, r); });
+renderLibrary(); renderGuard(); render();
+if (window.claude && typeof window.claude.use === "function") {
+  window.claude.use("sample").then(s => { sample = s; if (!s) showBanner("Claude isn't available in this view, so the agents can't run here. The Lanternfish example shows a finished run."); });
+} else {
+  showBanner("Claude isn't available in this view, so the agents can't run here. The Lanternfish example shows a finished run.");
+}
+</script>
+</body>
+</html>
