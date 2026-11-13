@@ -129,8 +129,10 @@ details summary { cursor: pointer; }
     <a href="https://jamesallgood99.github.io/gtm-simulator/">GTM Simulator</a>
     <a href="https://jamesallgood99.github.io/competitive-intel-tracker/">Competitive Intel Tracker</a>
     <a href="https://jamesallgood99.github.io/acme-prospecting-agents/" aria-current="page">Prospecting Agents</a>
+    <a href="https://jamesallgood99.github.io/full-funnel-attribution/">Full-Funnel Attribution</a>
   </nav>
   <a class="gh" href="https://github.com/jamesallgood99/acme-prospecting-agents">View source on GitHub</a>
+  <button class="tour-open" type="button" data-tour-open>Take the tour</button>
 </div>
 <div class="top">
   <h1>Acme Corp Prospecting Agents</h1>
@@ -1059,6 +1061,295 @@ if (window.claude && typeof window.claude.use === "function") {
 } else {
   showBanner("Claude isn't available in this view, so the agents can't run here. The examples show finished runs: Lanternfish and Blue Hour reach human review, and Kiln & Crane is stopped at research.");
 }
+</script>
+<!-- Product tour for the public demo: an intro and the four things worth seeing. It opens on a first visit
+     (or with ?tour in the URL); the ribbon's "Take the tour" button reopens it. As you step through, the page
+     behind it switches to the matching tab and example account. Every detail comes from the example runs. -->
+<style>
+.ribbon .tour-open { font: 600 13px var(--body); color: var(--panel); background: var(--accent); border: 0; border-radius: 4px; padding: 4px 10px; cursor: pointer; }
+.ribbon .tour-open:hover, .ribbon .tour-open:focus-visible { filter: brightness(1.12); }
+html.tour-on { overflow: hidden; }
+.tour { position: fixed; inset: 0; z-index: 90; display: grid; place-items: start center; padding: max(20px, 6vh) 20px 20px; }
+.tour[hidden] { display: none; }
+.tour-backdrop { position: absolute; inset: 0; background: rgba(10, 12, 18, 0.55); animation: tour-fade 0.2s ease both; }
+.tour-dialog { position: relative; width: min(720px, 100%); max-height: calc(100vh - max(20px, 6vh) - 20px); overflow-y: auto; display: flex; flex-direction: column;
+  background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-top: 5px solid var(--accent); border-radius: 12px; box-shadow: 0 24px 64px rgba(0, 0, 0, 0.3); animation: tour-rise 0.22s ease both; }
+.tour-dialog > * { flex-shrink: 0; }
+.tour-bar { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px 0 20px; }
+.tour-kicker { font: 600 12px var(--body); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.tour-x { border: 0; background: none; color: var(--muted); font-size: 24px; line-height: 1; width: 34px; height: 34px; border-radius: 6px; cursor: pointer; }
+.tour-x:hover { color: var(--ink); background: var(--code); }
+.tour-visual { margin: 10px 20px 0; padding: 14px; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; min-height: 210px; display: grid; align-items: center; font-size: 13px; }
+.tour-visual > * { animation: tour-rise 0.28s ease both; min-width: 0; }
+.tour-copy { padding: 16px 20px 4px; }
+.tour-copy h2 { font: 800 22px/1.2 var(--display); }
+.tour-dialog.is-intro .tour-copy h2 { font-size: 25px; }
+.tour-copy p { margin: 8px 0 0; color: var(--muted); max-width: 66ch; }
+.tour-cta { margin-top: 10px; padding: 0; border: 0; background: none; color: var(--accent); font: 600 14px var(--body); cursor: pointer; }
+.tour-cta:hover { text-decoration: underline; }
+.tour-foot { position: sticky; bottom: 0; background: var(--panel); display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 20px 18px; }
+.tour-steps { list-style: none; display: flex; gap: 7px; margin: 0; padding: 0; }
+.tour-steps button { width: 9px; height: 9px; padding: 0; border: 0; border-radius: 50%; background: var(--line); cursor: pointer; transition: width 0.2s ease; }
+.tour-steps button[aria-current="step"] { width: 24px; border-radius: 5px; background: var(--accent); }
+.tour-dialog.is-intro .tour-steps { visibility: hidden; }
+.tour-buttons { display: flex; gap: 8px; margin-left: auto; }
+.tour-buttons .btn { padding: 8px 16px; font-size: 14px; }
+.tour-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@keyframes tour-fade { from { opacity: 0; } }
+@keyframes tour-rise { from { opacity: 0; transform: translateY(8px); } }
+
+.tv-label { display: block; font: 600 11px var(--body); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+.tv-box { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+/* Intro pipeline */
+.tv-pipe { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.tv-stage { background: var(--panel); border: 1px solid var(--line); border-top: 3px solid var(--accent); border-radius: 8px; padding: 9px 10px; display: grid; gap: 4px; align-content: start; position: relative; }
+.tv-stage b { font: 600 13.5px var(--display); }
+.tv-stage span { color: var(--muted); font-size: 12px; line-height: 1.4; }
+.tv-stage.gate { border-top-color: var(--warn); background: var(--warn-soft); }
+.tv-stage.gate b, .tv-stage.gate span { color: var(--warn); }
+.tv-stage + .tv-stage::before { content: "→"; position: absolute; left: -9px; top: 12px; color: var(--muted); font-size: 12px; }
+.tv-codeline { margin-top: 10px; font-size: 12.5px; color: var(--muted); display: flex; gap: 8px; align-items: center; }
+.tv-codeline code { font: 500 11.5px var(--mono); background: var(--code); color: var(--ink); padding: 2px 6px; border-radius: 4px; }
+/* Dossier */
+.tv-dossier { display: grid; grid-template-columns: 1.25fr 1fr; gap: 10px; }
+.tv-dossier .kv { grid-template-columns: 82px minmax(0, 1fr); font-size: 12.5px; }
+.tv-trigger { background: var(--accent-soft); color: var(--accent); border-radius: 6px; padding: 7px 9px; font-weight: 600; font-size: 12.5px; }
+.tv-trigger small { display: block; font: 500 11px var(--mono); opacity: 0.85; margin-top: 2px; }
+.tv-fact { font-size: 12px; padding: 5px 0; border-top: 1px solid var(--line); }
+.tv-fact .quote { display: block; }
+/* Email */
+.tv-mail { display: grid; grid-template-columns: 1.5fr 1fr; gap: 10px; }
+.tv-mail .email { padding: 11px; gap: 6px; font-size: 12.5px; background: var(--panel); }
+.tv-mail .email p { line-height: 1.55; }
+.tv-sample { display: grid; gap: 6px; align-content: start; }
+.tv-sample pre { font-size: 11px; padding: 8px; }
+.tv-checks { display: grid; gap: 5px; }
+.tv-checks div { display: flex; gap: 6px; align-items: baseline; font-size: 12px; }
+/* Stop */
+.tv-stop { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.tv-stop .banner { font-size: 12.5px; }
+.tv-stop blockquote { margin: 8px 0 0; padding: 6px 10px; border-left: 3px solid var(--bad); font-style: italic; color: var(--ink); font-size: 12.5px; }
+.tv-dq { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 12px; }
+.tv-dq li { display: flex; gap: 6px; align-items: baseline; }
+.tv-gate { margin-top: 8px; font-size: 12px; color: var(--warn); background: var(--warn-soft); border-radius: 6px; padding: 7px 9px; }
+/* Replies */
+.tv-replies { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.tv-route { display: grid; gap: 6px; }
+.tv-route > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; font-size: 12px; }
+.tv-route .who { color: var(--muted); font-style: italic; }
+.tv-consent { display: grid; gap: 6px; align-content: start; }
+.tv-consent .tv-box { font-size: 12.5px; }
+.tv-consent .no { border-left: 3px solid var(--bad); }
+.tv-consent .yes { border-left: 3px solid var(--good); }
+
+@media (max-width: 640px) {
+  .tour { padding: 0; align-items: end; }
+  .tour-dialog { width: 100%; max-height: 92vh; border-radius: 12px 12px 0 0; }
+  .tour-visual { margin: 10px 14px 0; padding: 10px; min-height: 0; }
+  .tour-bar { padding-left: 14px; }
+  .tour-copy { padding: 14px 14px 4px; }
+  .tour-copy h2, .tour-dialog.is-intro .tour-copy h2 { font-size: 20px; }
+  .tour-foot { padding: 12px 14px 14px; border-top: 1px solid var(--line); margin-top: 10px; }
+  .tour-buttons { width: 100%; }
+  .tour-buttons .btn { flex: 1; }
+  .tv-pipe { grid-template-columns: 1fr; }
+  .tv-stage + .tv-stage::before { content: none; }
+  .tv-dossier, .tv-mail, .tv-stop, .tv-replies { grid-template-columns: 1fr; }
+  .tv-hide-sm { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tour-backdrop, .tour-dialog, .tour-visual > * { animation: none; }
+  .tour-steps button { transition: none; }
+}
+@media print { .tour, .tour-open { display: none !important; } }
+</style>
+<script>
+(() => {
+  // Fresh copies of the example runs, checked by the same code the page uses, so the tour never
+  // reflects a visitor's own edits and never changes the page's saved state.
+  let facts = null;
+  function build() {
+    if (facts) return facts;
+    const accts = examples();
+    const byId = Object.fromEntries(accts.map(a => [a.id, a]));
+    const lf = evaluate(byId.ex1, exampleRun());
+    const kc = evaluate(byId.ex2, exampleRunKiln());
+    const spam = (lf.emailChecks || []).find(c => /^Spam score/.test(c.label));
+    const persona = PERSONAS.find(p => p.id === lf.dossier.target_persona.id);
+    const trig = lf.dossier.trigger;
+    const age = Math.round((Date.now() - new Date(trig.date)) / DAY);
+    const stopFact = (kc.dossier.facts || []).find(f => /AI/.test(f.fact));
+    facts = {
+      lf: { a: byId.ex1, r: lf, persona, age, trig, verified: lf.dossier.facts.filter(f => f.verified).length, total: lf.dossier.facts.length,
+        spam: spam ? (spam.label.match(/Spam score ([\d.]+)/) || [])[1] : null,
+        passed: (lf.emailChecks || []).filter(c => c.ok).length, checks: (lf.emailChecks || []).length },
+      kc: { a: byId.ex2, r: kc, quote: stopFact && stopFact.quote, url: stopFact && stopFact.source_url },
+      personas: PERSONAS.length, proof: PROOF.length,
+    };
+    return facts;
+  }
+
+  const ok = (label, cls = "good", txt = "Pass") => `<div><span class="pill ${cls}">${txt}</span><span>${esc(label)}</span></div>`;
+
+  function introVisual() {
+    const stages = [
+      ["1 Research", "A sourced dossier from public pages"],
+      ["3 Asset", "A sample prompt in their genre"],
+      ["2 Writing", "Touch one, every sentence sourced"],
+      ["Human gate", "A person approves before anything sends", "gate"],
+      ["4 Reply", "Nine categories, safe actions only"],
+    ];
+    return `<div><div class="tv-pipe">${stages.map(([b, s, c]) => `<div class="tv-stage ${c || ""}"><b>${b}</b><span>${s}</span></div>`).join("")}</div>
+      <div class="tv-codeline"><code>{ strict JSON }</code> Each agent returns a fixed schema, and code, not the model, decides what passes.</div></div>`;
+  }
+
+  function dossierVisual(f) {
+    const d = f.lf.r.dossier;
+    return `<div class="tv-dossier">
+      <div class="tv-box"><span class="tv-label">${esc(f.lf.a.company)} dossier</span>
+        <dl class="kv"><dt>Makes</dt><dd>${esc(d.what_they_make)}</dd><dt>Team</dt><dd>${esc(d.team_size.value)} people</dd>
+        <dt>Stack</dt><dd>${esc(d.tool_stack.join(", "))}</dd><dt>Write to</dt><dd>${esc(d.contact.name)}, ${esc(d.contact.title)}<br><span class="note">${esc(f.lf.persona ? f.lf.persona.role : "")} persona</span></dd></dl>
+        <div class="tv-trigger" style="margin-top:8px">Trigger, ${f.lf.age} days old: ${esc(d.trigger.signal)}<small>${esc(d.trigger.source_url.replace(/^https?:\/\//, ""))}</small></div>
+      </div>
+      <div style="display:grid;gap:8px;align-content:start">
+        <div class="tv-box"><span class="tv-label">Facts, quoted word for word</span>
+          ${d.facts.slice(0, 2).map(x => `<div class="tv-fact"><span class="ref">${esc(x.id)}</span> ${esc(x.fact)}<span class="quote">“${esc(x.quote)}”</span></div>`).join("")}
+          <div class="tv-fact note">${f.lf.verified} of ${f.lf.total} verified against their source</div></div>
+        <div class="tv-box"><span class="tv-label">Do not generate</span><div class="chips">${d.ip_inventory.map(t => `<span class="chip-block">${esc(t)}</span>`).join("")}</div></div>
+      </div></div>`;
+  }
+
+  function emailVisual(f) {
+    const r = f.lf.r, e = r.email;
+    const allowed = allowedSourceIds(r.dossier);
+    const sent = e.body_sentences.slice(0, 4).map(s => esc(s.text.replace("{PROMPT_LINK}", "[prompt link]")) + s.sources.map(id => `<span class="ref${allowed.has(id) ? "" : " bad"}">${esc(id)}</span>`).join("")).join(" ");
+    return `<div class="tv-mail">
+      <div class="email"><div class="meta">From: ${esc(SENDER.name)} · To: ${esc(r.dossier.contact.email)}</div><div class="subj">${esc(e.subject)}</div><p>${sent} …</p></div>
+      <div class="tv-sample">
+        <div class="tv-box"><span class="tv-label">Sample, in their style</span>${esc(r.asset.concept)}<div class="note" style="margin-top:4px">${esc(r.asset.format)} · ${Number(r.asset.poly_target).toLocaleString()} tris · nothing of theirs named</div></div>
+        <div class="tv-box tv-checks"><span class="tv-label">Self-check by code</span>
+          ${f.lf.spam != null ? ok(`Spam score ${f.lf.spam} / 10`) : ""}
+          ${ok("Every claim has a source")}
+          ${ok(`${f.lf.passed} of ${f.lf.checks} checks pass`)}
+        </div>
+      </div></div>`;
+  }
+
+  function stopVisual(f) {
+    const dq = ["Existing customers", "Competitor domains", "Studios over 200", "Contacts outside the US", "Anyone who could be a minor", "A public anti-AI stance"];
+    return `<div class="tv-stop">
+      <div class="tv-box"><span class="tv-label">${esc(f.kc.a.company)}</span>
+        <div class="banner bad">Stopped at research: ${esc(f.kc.r.dossier.disqualifiers.map(dqLabel).join(", "))}. No email is written.</div>
+        ${f.kc.quote ? `<blockquote>“${esc(f.kc.quote)}”</blockquote><div class="src" style="margin-top:4px">${esc(f.kc.url.replace(/^https?:\/\//, ""))}</div>` : ""}
+      </div>
+      <div class="tv-box"><span class="tv-label">Code stops the run for</span>
+        <ul class="tv-dq">${dq.map(x => `<li><span class="pill bad">Stop</span>${x}</li>`).join("")}</ul>
+        <div class="tv-gate">A person reviews the first 100 emails, then a 10% sample. Sending pauses if QA drops below 95%.</div>
+      </div></div>`;
+  }
+
+  function replyVisual() {
+    const rows = [
+      ["Before I send anything: does our concept art end up training your model?", "FAQ", "acc", "Answers it"],
+      ["Our publisher will want IP indemnity before we use any AI tool.", "Legal terms", "warn", "To a person"],
+      ["We don't use generative AI at our studio.", "Anti-AI", "bad", "Suppressed"],
+    ];
+    return `<div class="tv-replies">
+      <div class="tv-route"><span class="tv-label">Replies, sorted</span>${rows.map(([t, c, k, act]) => `<div><span class="who">“${esc(t)}”</span><span class="pill ${k}">${act}</span></div>`).join("")}
+        <div><span>Below 0.8 confidence</span><span class="pill bad">A person decides</span></div></div>
+      <div class="tv-consent"><span class="tv-label">Their own work: only with consent</span>
+        <div class="tv-box no"><b>Never</b><br>An unasked-for AI copy of their characters or products</div>
+        <div class="tv-box yes"><b>Instead</b><br>The email invites a sketch or photo. Mode B models it only after they say yes in writing.</div>
+      </div></div>`;
+  }
+
+  const steps = [
+    { intro: true, kicker: "Product tour", title: "Four agents and one human gate for outbound email",
+      body: () => "Proving you looked at an account takes 20 to 30 minutes by hand, which no SDR team pays back at an SMB price. These agents turn a prospect's public pages into a researched, consent-based first email. Acme Corp and every account here are fictional, and nothing sends.",
+      visual: introVisual, tab: "bench", account: "ex1" },
+    { kicker: "Feature 1 of 4", title: "Research that cites its sources",
+      body: f => `For ${esc(f.lf.a.company)}, the research agent reads the studio's store page, job post and about page, then builds a dossier: what they make, their tools, a trigger under 60 days old and the right person to write to. Code drops any fact it can't find word for word on the page, and lists the studio's own IP so nothing generates it.`,
+      visual: dossierVisual, tab: "bench", account: "ex1", cta: "Open the full dossier" },
+    { kicker: "Feature 2 of 4", title: "An email where every sentence has a receipt",
+      body: f => `The asset agent writes a prompt for the exact kind of prop their job post asks for, in their style. The writing agent drafts touch one around it, and every sentence carries a tag back to a fact, an approved proof point or an integration. Code scores it for spam, length and banned claims, and a failed draft gets one rewrite before a person takes over.`,
+      visual: emailVisual, tab: "bench", account: "ex1", cta: "See the claim map" },
+    { kicker: "Feature 3 of 4", title: "It knows when not to send",
+      body: f => `${esc(f.kc.a.company)} says on its own shop page that it won't sell AI-generated models, so the run stops before any email is written. The same code stops existing customers, competitors, large studios and contacts outside the US, and a person approves everything that does pass.`,
+      visual: stopVisual, tab: "bench", account: "ex2", cta: "Look at the stopped run" },
+    { kicker: "Feature 4 of 4", title: "Replies get sorted, and their work stays theirs",
+      body: () => "The reply agent sorts what comes back into nine categories and handles the safe ones itself. Money, legal terms and live buyers go to a person, and so does anything it's under 80% sure about. Routing runs live when you open the page as a Claude artifact; here you can browse the sample replies.",
+      visual: replyVisual, tab: "replies", cta: "Try the reply samples" },
+  ];
+
+  const root = document.createElement("div");
+  root.className = "tour"; root.hidden = true;
+  root.innerHTML = `<div class="tour-backdrop" data-close></div>
+  <div class="tour-dialog" role="dialog" aria-modal="true" aria-labelledby="tour-title" aria-describedby="tour-body">
+    <div class="tour-bar"><span class="tour-kicker" id="tour-kicker"></span><button class="tour-x" type="button" data-close aria-label="Close the tour">×</button></div>
+    <div class="tour-visual" id="tour-visual"></div>
+    <div class="tour-copy"><h2 id="tour-title"></h2><p id="tour-body"></p><button class="tour-cta" type="button" id="tour-cta" data-close hidden></button></div>
+    <div class="tour-foot"><ol class="tour-steps" id="tour-steps" aria-label="Tour steps"></ol>
+      <div class="tour-buttons"><button class="btn ghost" type="button" id="tour-back"></button><button class="btn" type="button" id="tour-next"></button></div></div>
+    <p class="tour-sr" aria-live="polite" id="tour-status"></p>
+  </div>`;
+  document.body.appendChild(root);
+  const q = id => root.querySelector("#" + id);
+  const dialog = root.querySelector(".tour-dialog");
+  q("tour-steps").innerHTML = steps.map((s, i) => `<li><button type="button" data-step="${i}" aria-label="${i ? esc(s.title) : "Intro"}"></button></li>`).join("");
+  let cur = 0, opener = null;
+  const SEEN = "acme-pa-tour-seen";
+  const seen = () => { try { return localStorage.getItem(SEEN) === "1"; } catch (e) { return false; } };
+  const markSeen = () => { try { localStorage.setItem(SEEN, "1"); } catch (e) { /* private mode */ } };
+
+  function showBehind(s) {
+    const tab = document.getElementById("tab-" + s.tab);
+    if (tab && tab.getAttribute("aria-selected") !== "true") tab.click();
+    if (s.account && accounts.some(a => a.id === s.account) && selected !== s.account) { selected = s.account; render(); }
+  }
+
+  function draw() {
+    const f = build(), s = steps[cur], last = cur === steps.length - 1;
+    dialog.classList.toggle("is-intro", !!s.intro);
+    q("tour-kicker").textContent = s.kicker;
+    q("tour-title").textContent = s.title;
+    q("tour-body").innerHTML = s.body(f);
+    q("tour-visual").innerHTML = s.visual(f);
+    q("tour-cta").hidden = !s.cta;
+    if (s.cta) q("tour-cta").textContent = s.cta + " →";
+    q("tour-back").textContent = s.intro ? "Skip, I'll explore" : "Back";
+    q("tour-next").textContent = s.intro ? "Show me around" : last ? "Start exploring" : "Next";
+    q("tour-steps").querySelectorAll("button").forEach((b, i) => b.setAttribute("aria-current", i === cur ? "step" : "false"));
+    q("tour-status").textContent = s.intro ? "" : `${s.kicker}: ${s.title}`;
+    showBehind(s);
+    dialog.scrollTop = 0;
+  }
+  function open() {
+    opener = document.activeElement; cur = 0; draw();
+    root.hidden = false; document.documentElement.classList.add("tour-on");
+    q("tour-next").focus({ preventScroll: true });
+  }
+  function close() {
+    markSeen(); root.hidden = true; document.documentElement.classList.remove("tour-on");
+    if (opener && document.contains(opener)) opener.focus();
+  }
+  const go = i => { cur = Math.max(0, Math.min(steps.length - 1, i)); draw(); };
+
+  q("tour-next").onclick = () => (cur === steps.length - 1 ? close() : go(cur + 1));
+  q("tour-back").onclick = () => (steps[cur].intro ? close() : go(cur - 1));
+  q("tour-steps").onclick = e => { const b = e.target.closest("[data-step]"); if (b) go(+b.dataset.step); };
+  root.addEventListener("click", e => { if (e.target.closest("[data-close]")) close(); });
+  root.addEventListener("keydown", e => {
+    if (e.key === "Escape") { e.preventDefault(); close(); return; }
+    if (e.key === "ArrowRight") { e.preventDefault(); if (cur < steps.length - 1) go(cur + 1); return; }
+    if (e.key === "ArrowLeft") { e.preventDefault(); go(cur - 1); return; }
+    if (e.key !== "Tab") return;
+    const els = [...dialog.querySelectorAll("button")].filter(b => !b.hidden && b.offsetParent !== null);
+    if (e.shiftKey && document.activeElement === els[0]) { e.preventDefault(); els[els.length - 1].focus(); }
+    else if (!e.shiftKey && document.activeElement === els[els.length - 1]) { e.preventDefault(); els[0].focus(); }
+  });
+  document.querySelectorAll("[data-tour-open]").forEach(b => b.addEventListener("click", open));
+  if (new URLSearchParams(location.search).has("tour") || !seen()) open();
+})();
 </script>
 </body>
 </html>
