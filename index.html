@@ -31,6 +31,15 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; }
 body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--body); }
+/* Project ribbon: links back to James's other open-source GTM tools. */
+.ribbon { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 18px; padding: 8px 24px; background: var(--ink); color: var(--bg); font-size: 13px; }
+.ribbon .who { font-weight: 600; margin-right: 6px; }
+.ribbon .who a { color: inherit; text-decoration: none; }
+.ribbon nav { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.ribbon a { color: var(--bg); opacity: 0.75; text-decoration: none; }
+.ribbon a:hover, .ribbon a:focus-visible { opacity: 1; text-decoration: underline; }
+.ribbon a[aria-current="page"] { opacity: 1; font-weight: 600; border-bottom: 2px solid var(--accent); }
+.ribbon .gh { margin-left: auto; }
 .top { padding: 20px 24px 14px; display: grid; gap: 10px; border-bottom: 1px solid var(--line); background: var(--panel); }
 h1 { font: 800 24px/1.15 var(--display); margin: 0; text-wrap: balance; }
 h2 { font: 600 17px/1.25 var(--display); margin: 0; text-wrap: balance; }
@@ -114,6 +123,15 @@ details summary { cursor: pointer; }
 </style>
 </head>
 <body>
+<div class="ribbon" role="navigation" aria-label="James Allgood's projects">
+  <span class="who"><a href="https://jamesallgood.com/ai-skills.html">James Allgood</a></span>
+  <nav>
+    <a href="https://jamesallgood99.github.io/gtm-simulator/">GTM Simulator</a>
+    <a href="https://jamesallgood99.github.io/competitive-intel-tracker/">Competitive Intel Tracker</a>
+    <a href="https://jamesallgood99.github.io/acme-prospecting-agents/" aria-current="page">Prospecting Agents</a>
+  </nav>
+  <a class="gh" href="https://github.com/jamesallgood99/acme-prospecting-agents">View source on GitHub</a>
+</div>
 <div class="top">
   <h1>Acme Corp Prospecting Agents</h1>
   <p class="sub">Turns public buying signals into a sourced dossier, a sample in the prospect's genre and a first email from Myko, Acme Corp's AI agent. Every sentence maps to a source or an approved proof point. Nothing sends: this prototype shows the work a person approves.</p>
